@@ -6,19 +6,14 @@ e o proxy do Coolify (Traefik) cuida do domínio e do certificado HTTPS. Não h�
 
 ## Recurso no Coolify 4.x
 
-- **Projeto:** "Expeditto" (ambiente `production`), no servidor da VPS, na rede padrão do Coolify.
-- **Tipo:** Public Repository → `https://github.com/vnschneider/expeditto`, branch `main`.
-- **Build Pack:** Static · **Base Directory:** `/site` · porta `80`.
-- **Domínio:** `https://expeditto.fabitz.com.br` (o DNS já aponta para a VPS; o Let's Encrypt é automático).
-- **Custom Nginx Configuration:** o conteúdo de `site/nginx.conf`. É obrigatória: o nginx padrão não conhece `.ps1`
-  e serviria o `install.ps1` como binário, o que quebra o `irm | iex`. A configuração também esconde os arquivos de
-  manutenção (`.py`, `.conf`). Mudou a configuração? Faça um **Redeploy**: o Coolify grava a configuração na imagem
-  durante o build, e um simples Restart não a aplica.
-- **Deploy automático:** a cada push na `main` (webhook do GitHub ou deploy manual).
+O site é um projeto **Vite + React + CSS** em `site/` (`npm run build` gera `site/dist`).
 
-Pela API ou pelo MCP do Coolify (`@fndchagas/coolify-mcp`), o equivalente é criar uma aplicação pública com
-`build_pack: "static"`, `base_directory: "/site"`, `ports_exposes: "80"`, `domains` e
-`custom_nginx_configuration` (o arquivo em base64).
+- **Projeto:** "Expeditto" (ambiente `production`), na rede padrão do Coolify.
+- **Tipo:** Public Repository `https://github.com/vnschneider/expeditto`, branch `main`.
+- **Build Pack:** Nixpacks, com **Is it a static site?** ligado. **Base Directory:** `/site`. **Publish Directory:** `/dist`.
+- **Domínio:** `https://expeditto.fabitz.com.br` (Traefik do Coolify cuida do HTTPS).
+- **Custom Nginx Configuration:** o conteúdo de `site/nginx.conf` (obrigatório: `.ps1`/`.sh` como texto). Mudou? Redeploy.
+- Os scripts `install.ps1`/`install.sh` e os SVGs ficam em `site/public/` e vão para o `dist` no build.
 
 ## Conferir
 
