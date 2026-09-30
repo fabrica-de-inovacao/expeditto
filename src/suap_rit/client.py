@@ -35,6 +35,7 @@ _ROTAS_PERMITIDAS = [
     r"/djtools/process2/[0-9a-f-]+/$",
     r"/djtools/process_progress2/[01]/[0-9a-f-]+/$",
 ]
+_ROTAS_ESCRITA = [r"/pit_rit_v2/preencher_relatorio_individual_trabalho/\d+/$"]
 _ROTAS_BLOQUEADAS = [r"/admin/", r"breadcrumbs_reset", r"entregar_relatorio", r"enviar_plano"]
 
 
@@ -92,6 +93,21 @@ class SuapClient:
 
     def json(self, caminho: str):
         return self._get(caminho).json()
+
+    def post_formulario(self, caminho: str, dados: dict[str, str],
+                        arquivos: dict[str, tuple[str, bytes, str]] | None = None) -> httpx.Response:
+        """Único ponto de escrita: só o formulário de preenchimento do RIT (botão "Salvar").
+        Entrega/envio continuam bloqueados por `_ROTAS_BLOQUEADAS`."""
+        self.verificar_rota(caminho)
+        if not any(re.match(p, caminho) for p in _ROTAS_ESCRITA):
+            raise RotaNaoPermitida(f"escrita não permitida: {caminho}")
+        url = str(self._http.base_url.join(caminho))
+        resp = self._http.post(caminho, data=dados, files=arquivos or None,
+                               headers={"Referer": url, "Origin": str(self._http.base_url).rstrip("/")})
+        if "/accounts/login" in str(resp.url):
+            raise SessaoExpirada()
+        resp.raise_for_status()
+        return resp
 
     def pdf(self, caminho: str) -> bytes:
         conteudo = self._get(caminho).content

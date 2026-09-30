@@ -116,6 +116,60 @@ def montar(semestre: str) -> None:
 
 
 @app.command()
+def textos(semestre: str, sobrescrever: bool = typer.Option(False, help="Refaz textos já revisados.")) -> None:
+    """Gera rascunhos dos 'Relatos' por tópico (HTML) a partir do acervo."""
+    from suap_rit import textos as txt
+
+    manifest = acervo.carregar_manifest(semestre)
+    if not manifest:
+        typer.secho(f"Nada coletado para {semestre}.", fg="red")
+        raise typer.Exit(1)
+    gerados = txt.gerar_rascunhos(manifest, sobrescrever=sobrescrever)
+    for topico in Topico:
+        situacao = "gerado" if topico.value in gerados else (
+            "mantido" if txt.carregar(semestre, topico.value) else "sem itens")
+        typer.echo(f"  {topico.rotulo:<72} {situacao}")
+    typer.echo(f"\nTextos em: {txt.pasta_textos(semestre)}")
+
+
+@app.command()
+def preencher(semestre: str,
+              salvar: bool = typer.Option(False, "--salvar", help="Grava no SUAP (Salvar). Nunca entrega."),
+              sim: bool = typer.Option(False, "--sim", help="Não pedir confirmação.")) -> None:
+    """Mostra o que será enviado ao formulário do RIT; com --salvar, grava como rascunho no SUAP."""
+    from suap_rit import formulario
+
+    manifest = acervo.carregar_manifest(semestre)
+    if not manifest or not manifest.plano or not manifest.plano.plano_id:
+        typer.secho(f"Sem acervo/plano para {semestre}.", fg="red")
+        raise typer.Exit(1)
+    envio = formulario.preparar(manifest)
+    typer.secho(f"Prévia do RIT {semestre} (plano {manifest.plano.plano_id}):", bold=True)
+    for linha in envio.resumo():
+        typer.echo(f"  {linha}")
+    if not salvar:
+        typer.echo("\n(prévia apenas — use --salvar para gravar no SUAP como rascunho)")
+        return
+    if not sim and not typer.confirm("\nGravar no SUAP (Salvar, sem entregar)?"):
+        raise typer.Exit(1)
+    client, _ = _cliente()
+    with client:
+        try:
+            r = formulario.salvar(client, manifest.plano.plano_id, envio)
+        except SessaoExpirada:
+            typer.secho("Sessão expirada. Rode `suap-rit login`.", fg="red")
+            raise typer.Exit(1)
+    for m in r.mensagens:
+        typer.echo(f"  SUAP: {m}")
+    divergentes = [c for c, ok in r.textos_conferem.items() if not ok]
+    typer.secho("Textos conferidos após salvar: " + ("todos OK" if not divergentes else f"divergem {divergentes}"),
+                fg="green" if not divergentes else "yellow")
+    typer.echo(f"Anexos vistos no formulário: {sorted(r.anexos_depois) or 'nenhum link exibido'}")
+    typer.secho(f"\nPrévia formatada (PDF do RIT): {r.url_relatorio_pdf}", bold=True)
+    typer.secho(f"Conferir/editar e entregar no SUAP: {r.url}", bold=True)
+
+
+@app.command()
 def logout() -> None:
     """Apaga a sessão guardada no keyring."""
     auth.apagar_sessao()

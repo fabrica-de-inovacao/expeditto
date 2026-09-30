@@ -211,3 +211,9 @@ def test_portaria_de_designacao_individual_pega_a_funcao():
                        "para desempenhar a Função de Coordenador (a) do Curso Técnico em Informática.",
                        nome="Fulana de Tal")
     assert d.papel == "Coordenador (a)"
+
+
+def test_curso_com_sufixo_do_campus():
+    from suap_rit.coleta import _curso
+
+    assert _curso("nde do curso bacharelado em sistemas de informação do campus exemplo") == "sistemas-de-informacao"

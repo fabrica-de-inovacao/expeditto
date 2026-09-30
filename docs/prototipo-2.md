@@ -95,7 +95,7 @@ Resources: `rit://{semestre}/manifest`, `rit://{semestre}/{topico}/texto`, `rit:
 | # | Resultado | Consequência |
 |---|---|---|
 | I1 ✅ | Form Django `POST multipart/form-data` na própria URL; campos: `csrfmiddlewaretoken`, 7× `obs_<topico>` (textarea CKEditor), 7× `arquivo_<topico>` (file, sem `accept`), `alteracoes`, submit `relatorioindividualtrabalhoprofessor_form` ("Salvar"). Nenhum outro campo oculto. Em 2025.1 está vazio. | E5 = GET (CSRF + estado atual) → POST com os 15 campos → GET de verificação. Sem Playwright para preencher. |
-| I2 ⏳ | Não testado: exige **Salvar** de verdade. Falta saber como o form mostra anexo já enviado (substituir/limpar?) e se o POST parcial apaga campos não enviados. | Pedir autorização para um teste controlado num semestre combinado. |
+| I2 ✅ | **Testado em 2025.1 (autorizado)** — ver mapa §10.1. Antes: não testado; exigia **Salvar** de verdade. Falta saber como o form mostra anexo já enviado (substituir/limpar?) e se o POST parcial apaga campos não enviados. | Pedir autorização para um teste controlado num semestre combinado. |
 | I3 ✅ | CKEditor 4 com `allowedContent: true`: aceita HTML livre (`p`, `ul/ol`, `strong`, `table`, alinhamento). | E3 gera HTML simples (parágrafo + lista); tabelas possíveis se ajudarem. |
 | I3+ ✅ | O RIT publicado (PDF) já inclui, por tópico: CH do PIT, lista de atividades do catálogo e, em Gestão, o histórico de funções. Os textos entram como **"Relatos"**. Os **anexos não aparecem no PDF publicado**. Em RITs publicados que consultamos, os relatos costumam ser "As comprovações estão no SUAP.". | O texto não precisa repetir o catálogo do PIT: deve **relatar o que foi feito** (itens concretos, papéis, períodos, documentos). É o maior ganho de qualidade em relação ao que é entregue hoje. |
 | I4 ⚠️ | `gmail.readonly` é escopo **restrito** do Google; admins do Workspace podem bloquear apps não verificados/não confiáveis (Admin console › Segurança › Controles de API). Não há confirmação de Gmail MCP oficial do Google; existem servidores comunitários com download de anexos. | Experimento necessário com a conta @ifma.edu.br: cliente OAuth "desktop" num projeto Google Cloud próprio. Se o IFMA bloquear: fallback = pasta de entrada manual (E8) + busca guiada (a ferramenta monta a query e a docente baixa as atas). |
@@ -111,3 +111,17 @@ Resources: `rit://{semestre}/manifest`, `rit://{semestre}/{topico}/texto`, `rit:
 - I4 resolvido por decisão: conector do ecossistema (D41) + backup OAuth próprio na CLI (D42). Limitação de anexos tratada em D43.
 - Portabilidade entre hosts: D44 (stdio + HTTP local; remoto/túnel fora do escopo).
 - Login SUAP: D45.
+
+## 8. Andamento (2026-09-29, noite)
+
+| Entrega | Estado | Onde |
+|---|---|---|
+| E2 anexos | ✅ capa + índice + marcadores + compressão; 7 anexos de 2025.1 (0,09–2,76 MB) | `anexos.py`, `suap-rit montar` |
+| E3 textos | ✅ rascunho determinístico + `contexto_topico` para o LLM do host | `textos.py`, `suap-rit textos` |
+| E5 salvar | ✅ prévia + Salvar com conferência; testado no SUAP real (2025.1) | `formulario.py`, `suap-rit preencher [--salvar]` |
+| E4 alterações | ⏳ próximo | — |
+| E1 servidor MCP | ⏳ próximo | — |
+| E6 atas (registrar_ata + backup OAuth) | ⏳ | — |
+| E7 Lattes / E8 entrada manual | ⏳ | — |
+
+Observação: o RIT 2025.1 de teste ficou **salvo como rascunho** com os textos gerados por template. A docente deve revisar (ou pedir nova versão pelo MCP) antes de entregar.

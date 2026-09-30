@@ -209,3 +209,9 @@ Na aba `?tab=disciplinas`, o menu "Emitir Declaração de Docência" lista os an
 - Campos: `csrfmiddlewaretoken` (hidden), `obs_apoio_ensino`, `obs_programas_projetos_ensino`, `obs_orientacao_alunos`, `obs_reunioes`, `obs_pesquisa`, `obs_extensao`, `obs_gestao` (textarea + CKEditor 4), os 7 `arquivo_*` correspondentes (file, até 10 MB), `alteracoes` (textarea + CKEditor) e submit `relatorioindividualtrabalhoprofessor_form` ("Salvar").
 - CKEditor: `allowedContent: true` (HTML livre), toolbar completa (listas, tabelas, alinhamento, fonte).
 - PDF do RIT (`/pit_rit_v2/relatorio_atividade_docente_pdf/{id}/`): cabeçalho + quadro resumo + por tópico: "[CH]", "Atividades" (catálogo marcado no PIT) e "Relatos" (o texto `obs_*`). Em Gestão entra também o histórico de funções, e ao final "Alterações de Atividades". Os anexos não entram no PDF.
+
+### 10.1 Após o primeiro "Salvar" (teste autorizado, 2025.1, 2026-09-29)
+- POST multipart com os 15 campos + CSRF e cabeçalhos `Referer`/`Origin` → 302 de volta ao formulário. Textos gravados idênticos ao enviado.
+- Anexos vão para o armazenamento S3 do SUAP (`ifma-suap-media…/pit_rit_v2/<nome>-<hash>.pdf`, link assinado temporário). O formulário passa a exibir o widget Django **"Atualmente: <link> [ ] Limpar · Modificar:"**, que cria os campos `arquivo_<topico>-clear`. Reenviar substitui; omitir mantém; nunca enviamos `-clear`.
+- O plano continua "Relatório Enviado: Não" e ganha os links **"Imprimir Relatório"** (`/pit_rit_v2/relatorio_atividade_docente_pdf/{id}/`, prévia formatada com os Relatos) e "Submeter Relatório para Avaliação" (`/pit_rit_v2/entregar_relatorio/{id}/`, **bloqueado** na ferramenta).
+- O PDF do RIT 2025.1 passou de 4 para 9 páginas, com os Relatos (parágrafo + lista) no lugar do texto genérico.

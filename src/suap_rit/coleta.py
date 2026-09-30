@@ -22,7 +22,7 @@ from suap_rit.models import (
 from suap_rit.suap import diarios, ensino, perfil as perfil_mod, planos, servidor
 
 # Legenda/categoria das atividades do PIT → tópico do RIT (para detectar divergências, D6).
-_CATEGORIAS_PIT = [
+CATEGORIAS_PIT = [
     (r"prepara", Topico.APOIO_ENSINO),
     (r"programas ou projetos de ensino|programas e projetos", Topico.PROGRAMAS_PROJETOS_ENSINO),
     (r"atendimento", Topico.ORIENTACAO_ALUNOS),
@@ -102,7 +102,7 @@ def _curso(texto: str) -> str:
     m = re.search(
         r"curso\s+(?:de\s+|do\s+|da\s+)?"
         r"(?:(?:bacharel(?:ado)?|licenciatura|t[ée]cnico|superior de tecnologia)\s+(?:em|de)\s+)?"
-        r"([a-zà-ú ]+?)(?=\s+do ifma|\s+no [âa]mbito|\s+campus|\s+modalidade|\s*[/,.;(\-]|$)",
+        r"([a-zà-ú ]+?)(?=\s+d[oa] ifma|\s+d[oa] campus|\s+no [âa]mbito|\s+campus|\s+modalidade|\s*[/,.;(\-]|$)",
         texto)
     return _slug(m[1]) if m else ""
 
@@ -209,7 +209,7 @@ def _pendencias_pit(plano: PlanoSemestre | None, itens: list[ItemAcervo]) -> lis
     for categoria, atividades in plano.atividades_pit.items():
         if not atividades:
             continue
-        topico = next((t for padrao, t in _CATEGORIAS_PIT if re.search(padrao, categoria, re.I)), None)
+        topico = next((t for padrao, t in CATEGORIAS_PIT if re.search(padrao, categoria, re.I)), None)
         if topico and topico not in cobertos:
             pendencias.append(Pendencia(
                 tipo="divergencia_pit",
