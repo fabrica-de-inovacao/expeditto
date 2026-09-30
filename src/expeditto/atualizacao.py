@@ -23,7 +23,7 @@ import httpx
 
 from expeditto import config
 
-REPOSITORIO = "vnschneider/expeditto"
+REPOSITORIO = "fabrica-de-inovacao/expeditto"
 _UM_DIA = 24 * 3600
 
 
@@ -51,7 +51,7 @@ def _cache():
 
 
 def _buscar_release(timeout: float) -> dict | None:
-    r = httpx.get(f"https://api.github.com/repos/{REPOSITORIO}/releases/latest", timeout=timeout,
+    r = httpx.get(f"https://api.github.com/repos/{REPOSITORIO}/releases/latest", timeout=timeout, follow_redirects=True,
                   headers={"Accept": "application/vnd.github+json", "User-Agent": "expeditto"})
     if r.status_code != 200:
         return None

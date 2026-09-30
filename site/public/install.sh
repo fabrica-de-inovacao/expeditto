@@ -9,11 +9,11 @@
 set -eu
 
 # Até a publicação no PyPI, a origem é o GitHub: a última release (ou a branch main, se ainda não houver).
-REPO="https://github.com/vnschneider/expeditto"
+REPO="https://github.com/fabrica-de-inovacao/expeditto"
 if [ -n "${EXPEDITTO_ORIGEM:-}" ]; then
     ORIGEM="$EXPEDITTO_ORIGEM"
 else
-    TAG="$(curl -fsSL https://api.github.com/repos/vnschneider/expeditto/releases/latest 2>/dev/null \
+    TAG="$(curl -fsSL https://api.github.com/repos/fabrica-de-inovacao/expeditto/releases/latest 2>/dev/null \
         | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)" || TAG=""
     if [ -n "$TAG" ]; then
         ORIGEM="expeditto @ $REPO/archive/refs/tags/$TAG.zip"

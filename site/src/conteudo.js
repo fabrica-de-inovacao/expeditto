@@ -1,6 +1,6 @@
 // Textos e dados da página. Mantidos aqui para editar sem mexer nos componentes.
 
-export const REPOSITORIO = "https://github.com/vnschneider/expeditto";
+export const REPOSITORIO = "https://github.com/fabrica-de-inovacao/expeditto";
 
 const origem = typeof window !== "undefined" && window.location.origin.startsWith("http")
   ? window.location.origin

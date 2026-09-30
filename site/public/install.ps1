@@ -16,10 +16,10 @@ $Origem = $env:EXPEDITTO_ORIGEM
 if (-not $Origem) {
     try {
         $tag = (Invoke-RestMethod -UseBasicParsing -TimeoutSec 15 `
-            'https://api.github.com/repos/vnschneider/expeditto/releases/latest').tag_name
+            'https://api.github.com/repos/fabrica-de-inovacao/expeditto/releases/latest').tag_name
     } catch { $tag = $null }
-    $Origem = if ($tag) { "expeditto @ https://github.com/vnschneider/expeditto/archive/refs/tags/$tag.zip" }
-              else { 'expeditto @ https://github.com/vnschneider/expeditto/archive/refs/heads/main.zip' }
+    $Origem = if ($tag) { "expeditto @ https://github.com/fabrica-de-inovacao/expeditto/archive/refs/tags/$tag.zip" }
+              else { 'expeditto @ https://github.com/fabrica-de-inovacao/expeditto/archive/refs/heads/main.zip' }
 }
 
 function Diga([string]$texto) { Write-Host "  $texto" -ForegroundColor DarkYellow }
