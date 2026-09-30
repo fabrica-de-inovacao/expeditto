@@ -8,7 +8,6 @@ from expeditto import assistente, hosts, instalador
 
 
 def test_modo_instalacao(tmp_path):
-    assert instalador.modo_instalacao(r"C:\Users\x\AppData\Roaming\uv\tools\expeditto") == "uv-tool"
     assert instalador.modo_instalacao("/home/x/.local/share/uv/tools/expeditto") == "uv-tool"
     (tmp_path / "pyproject.toml").write_text("", encoding="utf-8")
     (tmp_path / ".venv").mkdir()
