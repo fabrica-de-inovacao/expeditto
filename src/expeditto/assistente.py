@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 
 from rich.console import Console
 from rich.prompt import Confirm
@@ -79,7 +78,11 @@ def instalar(automatico: bool = False, apps_escolhidos: list[str] | None = None,
         if apps_escolhidos is not None:
             marcar = app.id in apps_escolhidos
         elif app.configurado():
-            _linha(True, app.nome, "já conectado")
+            try:
+                app.revisar()
+                _linha(True, app.nome, "já conectado")
+            except Exception as erro:  # noqa: BLE001
+                _linha(None, app.nome, f"conectado, mas não consegui revisar: {erro}")
             continue
         else:
             marcar = _pergunta(f"Conectar ao {app.nome}?", True, automatico)
@@ -143,13 +146,24 @@ def desinstalar(apagar: bool | None = None, automatico: bool = False) -> int:
 
 # -- atualizar ------------------------------------------------------------------------------
 def atualizar() -> int:
-    comando = instalador.comando_atualizar()
-    if comando is None:
-        modo = instalador.modo_instalacao()
-        dica = "git pull && uv sync" if modo == "desenvolvimento" else "rode o instalador de novo"
-        console.print(f"   Esta cópia não foi instalada pelo instalador oficial ({modo}). Para atualizar: {dica}")
+    import os
+
+    from expeditto import atualizacao
+
+    with console.status("   Procurando a versão mais nova…"):
+        nova = atualizacao.verificar(forcar=True)
+    if not nova:
+        _linha(True, f"Você já tem a versão mais nova ({atualizacao.versao_instalada()}).")
+        return 0
+    _cabecalho(f"Atualizar para a versão {nova['disponivel']}", f"Você tem a {nova['instalada']}.", "trabalhando")
+    if instalador.modo_instalacao() == "desenvolvimento":
+        _linha(None, "Esta é uma cópia de desenvolvimento: use git pull && uv sync.")
         return 1
-    with console.status("   Atualizando o Expeditto…"):
-        r = subprocess.run(comando, capture_output=True, text=True)
-    console.print(f"   {(r.stdout or r.stderr).strip().splitlines()[-1] if (r.stdout or r.stderr) else 'ok'}")
-    return r.returncode
+    # No Windows, este próprio comando trava os arquivos: a reinstalação abre numa janela nova e espera ele fechar.
+    r = atualizacao.atualizar(nova["disponivel"], aguardar_pid=os.getpid(), visivel=True)
+    _linha(r["ok"], r["mensagem"])
+    if r.get("agendada"):
+        _linha(None, "Uma janela nova vai mostrar o andamento. Feche os apps de IA antes, se estiverem abertos.")
+    else:
+        _linha(None, "Reinicie os apps de IA para eles usarem a versão nova.")
+    return 0 if r["ok"] else 1

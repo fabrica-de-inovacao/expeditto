@@ -63,6 +63,16 @@ class Inicio(Screen):
         tabela = self.query_one(DataTable)
         tabela.add_columns("Semestre", "Situação no SUAP", "Comprovantes", "Pendências", "Passo", "Rascunho no SUAP")
         self.action_recarregar()
+        self._verificar_atualizacao()
+
+    @work(thread=True, exclusive=True, group="atualizacao")
+    def _verificar_atualizacao(self) -> None:
+        from expeditto import atualizacao
+
+        if nova := atualizacao.verificar():
+            # No Windows os arquivos ficam travados com a interface aberta: atualizar depois de sair.
+            self.app.call_from_thread(self.notify, "Saia (q) e rode: expeditto atualizar",
+                                      title=f"Versão {nova['disponivel']} disponível", timeout=12)
 
     # -- dados -------------------------------------------------------------------------
     def action_recarregar(self) -> None:

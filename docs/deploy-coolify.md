@@ -9,7 +9,7 @@ e o proxy do Coolify (Traefik) cuida do domínio e do certificado HTTPS. Não h�
 O site é um projeto **Vite + React + CSS** em `site/` (`npm run build` gera `site/dist`).
 
 - **Projeto:** "Expeditto" (ambiente `production`), na rede padrão do Coolify.
-- **Tipo:** Public Repository `https://github.com/vnschneider/expeditto`, branch `main`.
+- **Tipo:** Public Repository `https://github.com/fabrica-de-inovacao/expeditto`, branch `main`.
 - **Build Pack:** Nixpacks, com **Is it a static site?** ligado. **Base Directory:** `/site`. **Publish Directory:** `/dist`.
 - **Domínio:** `https://expeditto.fabitz.com.br` (Traefik do Coolify cuida do HTTPS).
 - **Custom Nginx Configuration:** o conteúdo de `site/nginx.conf` (obrigatório: `.ps1`/`.sh` como texto). Mudou? Redeploy.
