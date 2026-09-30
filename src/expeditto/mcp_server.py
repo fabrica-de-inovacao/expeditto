@@ -1,74 +1,59 @@
-"""E1 — servidor MCP local (stdio) para Claude Desktop/Code, Codex e Gemini/Antigravity CLI (D47).
+"""Servidor MCP local (stdio) do Expeditto — Claude Desktop/Code, Codex, Gemini/Antigravity CLI (D47).
 
-Ferramentas de alto nível sobre o núcleo. Operações longas (login, coleta)
-rodam em segundo plano e devolvem um `tarefa_id` para `status_tarefa`.
-Nada é impresso em stdout (é o canal do protocolo).
+Experiência no chat: o assistente reconhece pedidos sobre o RIT e começa por `preparar_rit`, que
+diz em que passo o semestre está e qual é o próximo. Tarefas longas devolvem progresso em etapas
+(`aguardar_tarefa`). Nada é impresso em stdout (é o canal do protocolo).
 """
 
 from __future__ import annotations
 
+import asyncio
 import re
-import threading
-import traceback
-import uuid
 from collections import Counter
-from datetime import datetime
-from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 
-from expeditto import acervo, anexos, atas, auth, coleta, config, entrada, formulario, gmail, pendencias, textos
+from expeditto import (acervo, anexos, atas, auth, coleta, config, diagnostico as diag, entrada, formulario,
+                       gmail, pendencias, roteiro, tarefas, textos)
 from expeditto.client import SessaoExpirada, SuapClient
-from expeditto.models import Topico
+from expeditto.models import EstadoPlano, Topico
 from expeditto.suap import planos
 
 INSTRUCOES = """\
 Expeditto — assistente da burocracia docente ("seu segundo expediente, resolvido"). Hoje cuida do
 Relatório Individual de Trabalho (RIT) do SUAP IFMA. Roda na máquina do docente, com a sessão dele.
 
-Fluxo típico:
-1. `status_sessao`; se não houver sessão, `login` (abre janela do SUAP; o docente loga) e acompanhe com `status_tarefa`.
-2. `listar_semestres` → escolha com o docente o semestre (formato AAAA.P).
-3. `coletar_semestre` (tarefa em segundo plano) → `status_tarefa` até concluir → `resumo_semestre`.
-4. Atas por e-mail: se você tiver uma integração de e-mail (ex.: Gmail), busque atas/convocações de reuniões,
-   NDE, colegiado, comissões e bancas no período do semestre, nas contas institucional e acadêmica do docente,
-   e chame `registrar_ata` para cada uma (envie o PDF em base64 se conseguir ler o anexo).
-5. Pendências: apresente cada uma ao docente e registre a decisão dele com `resolver_pendencia`.
-   NUNCA invente justificativas: use apenas o que o docente disser.
-6. `montar_anexos` → para cada tópico, `contexto_topico` e redija o Relato (parágrafo-síntese + lista com
-   título, papel, período e "Doc. N do anexo"), usando só os fatos fornecidos; grave com `salvar_texto`.
-   Alternativa rápida: `gerar_rascunhos`. Depois `gerar_alteracoes`.
-7. `previa_preenchimento` → mostre ao docente → só com confirmação explícita dele, `salvar_no_suap(confirmado=true)`.
-8. Entregue os links devolvidos. A ENTREGA (submeter para avaliação) é sempre feita pelo docente no SUAP.
+QUANDO USAR: sempre que o docente falar de RIT, "relatório individual de trabalho", relatório do
+semestre, PIT/plano individual de trabalho, comprovantes/declarações/portarias do SUAP, bancas,
+orientações ou projetos para o relatório. Não peça que ele digite comandos: use as ferramentas.
+
+COMO CONDUZIR:
+1. Comece SEMPRE por `preparar_rit` (com o semestre, se ele disser qual). A resposta traz `etapa`,
+   `mensagem` (fale com o docente nesse tom), `trilha` (mostre-a) e `proximo` (a ferramenta a chamar).
+   Depois de cada passo concluído, chame `preparar_rit` de novo até a etapa "concluido".
+2. Tarefas longas (login, coleta) devolvem `tarefa_id`. Chame `aguardar_tarefa` em sequência e, a cada
+   resposta, MOSTRE ao docente a linha `progresso` (barra) e a linha `etapas`, sem enfeitar.
+3. Pendências: apresente um GRUPO por vez usando a `pergunta_sugerida` e registre a decisão com
+   `resolver_pendencia` (aceita vários números). NUNCA invente justificativas; use só o que o docente disser.
+4. Atas: se você tiver integração de e-mail (ex.: Gmail), busque atas/convocações de reuniões, NDE,
+   colegiado, comissões e bancas no período do semestre e chame `registrar_ata` para cada uma.
+   Sem integração de e-mail, use `buscar_atas_gmail` (backup do Expeditto), se estiver configurado.
+5. Relatos: para cada tópico, `contexto_topico` → redija (parágrafo + lista, só com os fatos e as
+   `contagens` fornecidas) → `salvar_texto`.
+6. Antes de salvar, mostre `previa_preenchimento` e peça confirmação explícita. Só então
+   `salvar_no_suap(confirmado=true)`. Ao final, mostre o `cartao` exatamente como veio.
+7. A ENTREGA (submeter para avaliação) é sempre do docente, no SUAP. Se algo falhar, use `diagnostico`.
 """
 
 servidor = MCPServer(name="expeditto", title="Expeditto", instructions=INSTRUCOES, version="0.2.0")
-
-# -- tarefas em segundo plano ------------------------------------------------------
-_tarefas: dict[str, dict[str, Any]] = {}
-_trava = threading.Lock()
+_tarefas = tarefas.Gerenciador()
 
 
-def _iniciar(descricao: str, alvo) -> dict:
-    tarefa_id = uuid.uuid4().hex[:8]
-    registro = {"id": tarefa_id, "descricao": descricao, "estado": "executando", "progresso": [],
-                "inicio": datetime.now().isoformat(timespec="seconds"), "resultado": None, "erro": None}
-    with _trava:
-        _tarefas[tarefa_id] = registro
-
-    def executar():
-        try:
-            registro["resultado"] = alvo(lambda msg: registro["progresso"].append(msg))
-            registro["estado"] = "concluida"
-        except SessaoExpirada:
-            registro["estado"], registro["erro"] = "erro", "Sessão do SUAP expirada: chame `login`."
-        except Exception as erro:  # noqa: BLE001 — erro vai para o host, não derruba o servidor
-            registro["estado"], registro["erro"] = "erro", f"{type(erro).__name__}: {erro}"
-            registro["detalhe"] = traceback.format_exc(limit=3)
-
-    threading.Thread(target=executar, daemon=True).start()
-    return {"tarefa_id": tarefa_id, "estado": "executando", "descricao": descricao}
+def _erro_amigavel(erro: Exception) -> str:
+    if isinstance(erro, SessaoExpirada):
+        return "A sessão do SUAP expirou. Chame `login` para o docente entrar de novo."
+    return f"{type(erro).__name__}: {erro}"
 
 
 def _cliente() -> SuapClient:
@@ -82,11 +67,68 @@ def _cliente() -> SuapClient:
 def _manifest(semestre: str):
     manifest = acervo.carregar_manifest(semestre)
     if not manifest:
-        raise ValueError(f"Nada coletado para {semestre}: chame `coletar_semestre` primeiro.")
+        raise ValueError(f"Nada coletado para {semestre}: chame `preparar_rit` ou `coletar_semestre`.")
     return manifest
 
 
-# -- ferramentas ----------------------------------------------------------------------
+# -- porta de entrada ------------------------------------------------------------------------
+@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+def preparar_rit(semestre: str | None = None, seguir_sem_decidir: bool = False) -> dict:
+    """PONTO DE PARTIDA para qualquer pedido sobre o RIT (Relatório Individual de Trabalho), o relatório do
+    semestre ou os comprovantes do SUAP. Diz em que passo o semestre (AAAA.P) está e qual ferramenta chamar
+    em seguida. Sem semestre, lista os RITs a preencher para o docente escolher."""
+    a_preencher = None
+    if not semestre and auth.carregar_sessao():
+        try:
+            with _cliente() as client:
+                a_preencher = [p.semestre for p in planos.carregar_todos(client)
+                               if p.estado == EstadoPlano.RIT_A_PREENCHER]
+        except SessaoExpirada:
+            auth.apagar_sessao()
+    em_curso = _tarefas.em_andamento()
+    passo = roteiro.situacao(semestre, seguir_sem_decidir, a_preencher).como_dict()
+    if em_curso:
+        passo["tarefa_em_andamento"] = em_curso[0].visao()
+        passo["proximo"] = {"ferramenta": "aguardar_tarefa", "argumentos": {"tarefa_id": em_curso[0].id}}
+    return passo
+
+
+@servidor.tool()
+async def aguardar_tarefa(tarefa_id: str, segundos: int = 45) -> dict:
+    """Espera uma tarefa em segundo plano avançar (até `segundos`, máx. 55) e devolve o progresso:
+    `progresso` (barra), `etapas` e `detalhe`. Mostre a barra ao docente a cada chamada."""
+    tarefa = _tarefas.obter(tarefa_id)
+    if not tarefa:
+        return {"erro": f"tarefa {tarefa_id} não encontrada"}
+    limite = max(1, min(segundos, 55))
+    inicio_pct = tarefa.percentual
+    for _ in range(limite * 2):
+        if tarefa.estado != "executando":
+            break
+        await asyncio.sleep(0.5)
+        if tarefa.percentual - inicio_pct >= 25:  # devolve cedo quando há avanço visível
+            break
+    visao = tarefa.visao()
+    if tarefa.estado == "concluida":
+        visao["proximo"] = {"ferramenta": "preparar_rit", "argumentos": {}}
+    return visao
+
+
+@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+def status_tarefa(tarefa_id: str) -> dict:
+    """Progresso atual de uma tarefa, sem esperar (prefira `aguardar_tarefa`)."""
+    tarefa = _tarefas.obter(tarefa_id)
+    return tarefa.visao() if tarefa else {"erro": f"tarefa {tarefa_id} não encontrada"}
+
+
+@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+def diagnostico(verificar_suap: bool = True) -> dict:
+    """Verifica se o Expeditto está pronto: versão, pasta de dados, navegador, sessão no SUAP, perfil,
+    apps de IA conectados e e-mail. Cada item traz `como_resolver` quando há problema."""
+    return diag.como_dict(diag.executar(verificar_online=verificar_suap))
+
+
+# -- sessão e semestres ------------------------------------------------------------------------
 @servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
 def status_sessao() -> dict:
     """Verifica se há sessão válida no SUAP e quem é o docente."""
@@ -102,23 +144,17 @@ def status_sessao() -> dict:
 
 @servidor.tool()
 def login() -> dict:
-    """Abre uma janela do SUAP para o docente fazer login (CAPTCHA/Gov.br). A janela fecha sozinha."""
+    """Abre uma janela do SUAP para o docente fazer login (CAPTCHA/Gov.br); ela fecha sozinha.
+    Devolve `tarefa_id`: acompanhe com `aguardar_tarefa` e avise o docente para olhar a janela."""
     def alvo(progresso):
-        progresso("janela de login aberta; aguardando o docente (até 10 min)")
+        progresso("Janela do SUAP aberta: aguardando o seu login (até 10 min)", etapa="janela")
         cookies = auth.login_interativo()
+        progresso("Carregando seu perfil", etapa="perfil")
         with SuapClient(cookies) as client:
             perfil = coleta.setup(client)
         return {"docente": perfil.nome, "matricula": perfil.matricula, "campus": perfil.campus}
-    return _iniciar("login no SUAP", alvo)
-
-
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
-def status_tarefa(tarefa_id: str) -> dict:
-    """Estado de uma tarefa em segundo plano (login, coleta)."""
-    registro = _tarefas.get(tarefa_id)
-    if not registro:
-        return {"erro": f"tarefa {tarefa_id} não encontrada"}
-    return {k: v for k, v in registro.items() if k != "detalhe"} | {"progresso": registro["progresso"][-8:]}
+    tarefa = _tarefas.iniciar("login", "Login no SUAP", alvo, _erro_amigavel)
+    return tarefa.visao() | {"mensagem": "Abri uma janela do SUAP no seu computador. Faça o login nela."}
 
 
 @servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
@@ -134,13 +170,18 @@ def listar_semestres() -> list[dict]:
 
 @servidor.tool()
 def coletar_semestre(semestre: str) -> dict:
-    """Coleta evidências e comprovantes do semestre (AAAA.P) no SUAP. Roda em segundo plano (alguns minutos)."""
+    """Coleta os comprovantes do semestre (AAAA.P) no SUAP, em segundo plano (2 a 8 minutos).
+    Devolve `tarefa_id`: acompanhe com `aguardar_tarefa`, mostrando a barra ao docente."""
+    em_curso = [t for t in _tarefas.em_andamento("coleta") if semestre in t.descricao]
+    if em_curso:
+        return em_curso[0].visao()
+
     def alvo(progresso):
         with _cliente() as client:
             perfil = acervo.carregar_perfil() or coleta.setup(client)
             manifest = coleta.coletar_semestre(client, perfil, semestre, progresso=progresso)
         return _resumo(manifest)
-    return _iniciar(f"coleta {semestre}", alvo)
+    return _tarefas.iniciar("coleta", f"Coleta {semestre}", alvo, _erro_amigavel).visao()
 
 
 _LATTES = re.compile(r"Lattes \((?P<cat>[^,]+), (?P<ano>\d{4})\): (?P<tit>.+?) — sem comprovante")
@@ -236,7 +277,7 @@ def registrar_atas_gmail(semestre: str, numeros: list[int]) -> dict:
 
 @servidor.tool()
 def resolver_pendencia(semestre: str, numeros: list[int], decisao: str, justificativa: str | None = None) -> dict:
-    """Registra a decisão DO DOCENTE sobre uma ou mais pendências (números de resumo_semestre).
+    """Registra a decisão DO DOCENTE sobre uma ou mais pendências (números vindos de `preparar_rit`/`resumo_semestre`).
     decisao: manter | remover_item | justificar (exige justificativa ditada pelo docente) | ignorar.
     Pendências 'lattes_sem_comprovante': se o docente tiver o comprovante, oriente-o a colocá-lo na
     pasta de entrada (ver `pasta_entrada`) e marque 'manter'; se não entra no RIT, 'ignorar'."""
@@ -304,10 +345,11 @@ def salvar_no_suap(semestre: str, confirmado: bool = False) -> dict:
         return {"salvo": False, "motivo": "confirmação do docente necessária (confirmado=true)"}
     with _cliente() as client:
         r = formulario.salvar_semestre(client, semestre)
-    return {"salvo": True, "textos_conferidos": r.textos_conferem, "anexos_no_formulario": sorted(r.anexos_depois),
-            "link_previa_pdf": r.url_relatorio_pdf, "link_formulario": r.url,
-            "proximo_passo": "O docente confere e, se estiver de acordo, clica em 'Submeter Relatório para "
-                             "Avaliação' no SUAP."}
+    salvo = roteiro.salvamento(semestre)
+    return {"salvo": True, "textos_conferidos": all(r.textos_conferem.values()),
+            "anexos_no_formulario": len(r.anexos_depois),
+            "cartao": roteiro.cartao(_manifest(semestre), salvo or {"url": r.url, "url_pdf": r.url_relatorio_pdf}),
+            "instrucao": "Mostre o `cartao` ao docente exatamente como veio."}
 
 
 def main() -> None:

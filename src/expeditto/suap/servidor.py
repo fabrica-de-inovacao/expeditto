@@ -98,9 +98,12 @@ def evidencia_portaria(linha: dict[str, h.Celula], texto: str, perfil: Perfil) -
     )
 
 
-def coletar_portarias(client: SuapClient, perfil: Perfil, cache: Cache, pagina: str) -> list[Evidencia]:
+def coletar_portarias(client: SuapClient, perfil: Perfil, cache: Cache, pagina: str,
+                      progresso=lambda m, f=None: None) -> list[Evidencia]:
     evidencias = []
-    for linha in linhas_pasta_funcional(pagina):
+    linhas = linhas_pasta_funcional(pagina)
+    for n, linha in enumerate(linhas, 1):
+        progresso(f"Portarias da pasta funcional ({n}/{len(linhas)})", n / max(len(linhas), 1))
         if not linha.get("Tipo de Arquivo", h.Celula("")).texto.startswith(TIPOS_RELEVANTES):
             continue
         links = [l for c in linha.values() for l in c.links]
@@ -205,11 +208,13 @@ def _equipe(papel: str, carga: str, bloco) -> dict[str, str]:
 
 
 def completar_projetos(client: SuapClient, cache: Cache, evidencias: list[Evidencia],
-                       matricula: str) -> list[Evidencia]:
+                       matricula: str, progresso=lambda m, f=None: None) -> list[Evidencia]:
     """Datas de execução e papel na equipe de cada projeto; devolve as evidências
     de orientação de discentes encontradas nas equipes (regra P1)."""
     orientacoes = []
-    for ev in evidencias:
+    for n, ev in enumerate(evidencias, 1):
+        progresso(f"Projetos ({n}/{len(evidencias)}): {ev.titulo[:50]}", n / max(len(evidencias), 1))
+
         def ler() -> dict:
             pagina = client.html(f"{ev.url_pagina}?tab=equipe", aba=True)
             inicio, fim = datas_projeto(pagina)
@@ -312,7 +317,8 @@ def parse_capacitacoes(pagina: str) -> list[Evidencia]:
     return evidencias
 
 
-def coletar(client: SuapClient, perfil: Perfil, cache: Cache) -> list[Evidencia]:
+def coletar(client: SuapClient, perfil: Perfil, cache: Cache,
+            progresso=lambda m, f=None: None) -> list[Evidencia]:
     base = f"/rh/servidor/{perfil.matricula}/"
     pagina_pasta = client.html(f"{base}?tab=pasta_funcional", aba=True)
     projetos = []
@@ -320,9 +326,12 @@ def coletar(client: SuapClient, perfil: Perfil, cache: Cache) -> list[Evidencia]
         projetos += parse_projetos(client.html(f"{base}?tab={aba}", aba=True))
     unicos = {p.id: p for p in projetos}
     projetos = list(unicos.values())
-    orientacoes = completar_projetos(client, cache, projetos, perfil.matricula)
+    orientacoes = completar_projetos(client, cache, projetos, perfil.matricula,
+                                     progresso=lambda m, f=None: progresso(m, None if f is None else f * 0.6))
+    portarias = coletar_portarias(client, perfil, cache, pagina_pasta,
+                                  progresso=lambda m, f=None: progresso(m, None if f is None else 0.6 + f * 0.4))
     return (
-        coletar_portarias(client, perfil, cache, pagina_pasta)
+        portarias
         + projetos
         + orientacoes
         + parse_funcoes(pagina_pasta)

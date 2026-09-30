@@ -121,4 +121,9 @@ def salvar_semestre(client: SuapClient, codigo: str) -> ResultadoSalvar:
     manifest = acervo.carregar_manifest(codigo)
     if not manifest or not manifest.plano or not manifest.plano.plano_id:
         raise ValueError(f"semestre {codigo} sem acervo/plano coletado")
-    return salvar(client, manifest.plano.plano_id, preparar(manifest))
+    resultado = salvar(client, manifest.plano.plano_id, preparar(manifest))
+    if all(resultado.textos_conferem.values()):
+        from expeditto import roteiro
+
+        roteiro.registrar_salvamento(codigo, resultado.url, resultado.url_relatorio_pdf)
+    return resultado

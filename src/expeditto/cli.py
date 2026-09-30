@@ -61,7 +61,7 @@ def coletar(semestre: str = typer.Argument(..., help="Ex.: 2025.1"),
         try:
             perfil = perfil or coleta.setup(client)
             manifest = coleta.coletar_semestre(client, perfil, semestre, baixar=not sem_download,
-                                               progresso=lambda m: typer.echo(f"  · {m}"))
+                                               progresso=lambda m, etapa=None, fracao=None: typer.echo(f"  · {m}"))
         except SessaoExpirada:
             typer.secho("Sessão expirada. Rode `expeditto login`.", fg="red")
             raise typer.Exit(1)

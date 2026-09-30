@@ -33,10 +33,10 @@ CATEGORIAS_PIT = [
 ]
 _AFASTAMENTO_RELEVANTE_DIAS = 15
 
-Progresso = Callable[[str], None]
+Progresso = Callable[..., None]  # progresso(mensagem, etapa=None, fracao=None) — ver tarefas.py
 
 
-def _nada(_: str) -> None:
+def _nada(mensagem: str, etapa: str | None = None, fracao: float | None = None) -> None:
     pass
 
 
@@ -223,22 +223,23 @@ def _pendencias_pit(plano: PlanoSemestre | None, itens: list[ItemAcervo]) -> lis
 def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bool = True,
                      progresso: Progresso = _nada) -> Manifest:
     cache = Cache()
-    progresso(f"Plano {codigo}")
+    progresso(f"Plano {codigo}", etapa="plano")
     plano = planos.carregar(client, codigo)
-    progresso("Calendário do semestre (diários)")
+    progresso("Calendário do semestre (diários)", etapa="calendario")
     sems, diarios_semestre = calendario(client, perfil, codigo)
     janela = semestres.janelas(sems)[codigo]
 
-    progresso("Estágios, TCCs e bancas")
+    progresso("Estágios, TCCs e bancas", etapa="ensino")
     docencia = ensino.declaracoes_docencia(client.html("/edu/professor/?tab=disciplinas", aba=True))
     for diario in diarios_semestre:  # D39: diários comprovados pela declaração anual de docência
         diario.url_comprovante = docencia.get(str(sems[codigo].ano))
     evidencias = diarios_semestre + ensino.coletar(client)
-    progresso("Pasta funcional, projetos e funções")
-    evidencias += servidor.coletar(client, perfil, cache)
+    progresso("Pasta funcional, projetos e funções", etapa="servidor")
+    evidencias += servidor.coletar(client, perfil, cache,
+                                   progresso=lambda m, f=None: progresso(m, etapa="servidor", fracao=f))
     itens_lattes = []
     if perfil.lattes_suap:
-        progresso("Lattes importado no SUAP (detector de lacunas)")
+        progresso("Lattes importado no SUAP (detector de lacunas)", etapa="lattes")
         from expeditto import lattes
         itens_lattes = lattes.parse(client.html(perfil.lattes_suap))
     _limitar_portarias_por_funcao(evidencias)
@@ -256,6 +257,9 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
         pendencias.append(Pendencia(tipo="estado_plano",
                                     mensagem=f"Estado do plano {codigo}: {plano.estado.value}."))
 
+    a_baixar = sum(1 for e in do_semestre if e.url_comprovante or e.tipo == TipoEvidencia.ESTAGIO) or 1
+    baixados = 0
+    progresso("Baixando comprovantes", etapa="comprovantes", fracao=0)
     for ev in do_semestre:
         cls = classificar(ev)
         if ev.tipo == TipoEvidencia.AFASTAMENTO:
@@ -268,7 +272,8 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
         _declaracao_de_estagio(ev, sems[codigo])
         arquivo = validade = None
         if ev.url_comprovante and baixar:
-            progresso(f"Baixando: {ev.titulo[:60]}")
+            baixados += 1
+            progresso(f"Baixando: {ev.titulo[:60]}", etapa="comprovantes", fracao=baixados / a_baixar)
             try:
                 origem, validade = _baixar(client, cache, ev)
                 arquivo = str(origem.relative_to(acervo.config.home()))
@@ -300,6 +305,7 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
         itens.append(ItemAcervo(evidencia_id=ev.id, topicos=cls.topicos, motivo=cls.motivo, arquivo=arquivo,
                                 validade=validade))
 
+    progresso("Organizando o acervo", etapa="organizacao")
     pendencias += _pendencias_pit(plano, itens)
     manifest = Manifest(
         semestre=sems[codigo],
