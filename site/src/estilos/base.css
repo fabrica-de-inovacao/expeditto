@@ -1,0 +1,169 @@
+/* Tokens do Expeditto. Tema escuro ("noite de expediente") e claro seguem o sistema. */
+:root {
+  --fundo: #16110d;
+  --superficie: #1f1813;
+  --elevado: #2a201a;
+  --borda: #3a2d23;
+  --texto: #f2e6d3;
+  --texto-forte: #fff3dc;
+  --apagado: #a8998a;
+  --laranja: #f28c28;
+  --laranja-texto: #ffb164;
+  --ambar: #ffc074;
+  --sobre-laranja: #1a120c;
+  --verde: #7bc47f;
+  --sombra: 0 24px 60px -24px rgb(8 5 3 / 0.7);
+
+  --raio: 14px;
+  --raio-pequeno: 10px;
+  --largura: 1180px;
+  --fonte: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --mola: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --fundo: #f3f2ef;
+    --superficie: #fbfbf9;
+    --elevado: #ecebe7;
+    --borda: #dcd9d2;
+    --texto: #2b2724;
+    --texto-forte: #1f1c1a;
+    --apagado: #6b645c;
+    --laranja: #e67e22;
+    --laranja-texto: #a6520c;
+    --ambar: #b8650f;
+    --sobre-laranja: #1f140b;
+    --verde: #2f7d35;
+    --sombra: 0 24px 60px -28px rgb(60 40 20 / 0.35);
+    color-scheme: light;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font: 400 17px/1.6 var(--fonte);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: var(--laranja-texto);
+  text-underline-offset: 3px;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--texto-forte);
+  margin: 0;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+:focus-visible {
+  outline: 2px solid var(--laranja);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.largura {
+  width: min(var(--largura), 100% - 32px);
+  margin-inline: auto;
+}
+
+.secao {
+  padding-block: clamp(64px, 9vw, 112px);
+}
+
+.secao-titulo {
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1.08;
+  font-weight: 750;
+  max-width: 18ch;
+}
+
+.secao-sub {
+  color: var(--apagado);
+  max-width: 56ch;
+  margin: 16px 0 0;
+  font-size: 18px;
+}
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--raio-pequeno);
+  font: 650 15px/1 var(--fonte);
+  padding: 12px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: transform 0.2s var(--mola), background-color 0.2s;
+}
+
+.botao:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.botao-primario {
+  background: var(--laranja);
+  color: var(--sobre-laranja);
+}
+
+.botao-primario:hover {
+  background: var(--ambar);
+}
+
+@media (prefers-color-scheme: light) {
+  .botao-primario:hover {
+    background: #f09a4a;
+  }
+}
+
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

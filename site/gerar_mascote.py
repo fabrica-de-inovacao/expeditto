@@ -1,4 +1,4 @@
-"""Gera os SVGs do mascote para o site a partir do mesmo desenho da interface do terminal.
+﻿"""Gera os SVGs do mascote para o site a partir do mesmo desenho da interface do terminal.
 
 Uso: uv run python site/gerar_mascote.py
 """
@@ -7,7 +7,7 @@ from pathlib import Path
 
 from expeditto.tui import mascote
 
-DESTINO = Path(__file__).parent
+DESTINO = Path(__file__).parent / "public"
 
 
 def svg(pose: str, tamanho: str = "grande") -> str:
@@ -20,7 +20,7 @@ def svg(pose: str, tamanho: str = "grande") -> str:
 
 
 if __name__ == "__main__":
-    for pose in ("acenando", "comemorando", "trabalhando", "normal"):
+    for pose in ("acenando", "comemorando", "trabalhando", "normal", "piscando"):
         (DESTINO / f"mascote-{pose}.svg").write_text(svg(pose), encoding="utf-8")
     (DESTINO / "favicon.svg").write_text(svg("normal", "pequeno"), encoding="utf-8")
     print("SVGs gerados em", DESTINO)
