@@ -36,9 +36,21 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { throw 'Nao consegui instalar o uv.' }
 }
 
+# Um Expeditto antigo aberto (servidor MCP de um app de IA, interface) trava os arquivos no Windows.
+$pastaFerramenta = Join-Path ((uv tool dir) | Out-String).Trim() 'expeditto'
+$emUso = @(Get-CimInstance Win32_Process | Where-Object {
+    $_.ExecutablePath -and $_.ExecutablePath.StartsWith($pastaFerramenta, [StringComparison]::OrdinalIgnoreCase) })
+if ($emUso.Count -gt 0) {
+    Diga "Fechando o Expeditto antigo que estava aberto ($($emUso.Count) processo(s)). Depois, reinicie os apps de IA."
+    $emUso | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Seconds 2
+}
+
 Diga 'Instalando o Expeditto (pode levar 1 ou 2 minutos)...'
 uv tool install --force --reinstall-package expeditto --python 3.12 $Origem
-if ($LASTEXITCODE -ne 0) { throw 'Nao consegui instalar o Expeditto.' }
+if ($LASTEXITCODE -ne 0) {
+    throw 'Nao consegui instalar o Expeditto. Feche os apps de IA (Claude, OpenCode, etc.) e rode o comando de novo.'
+}
 uv tool update-shell *> $null
 
 $bin = (uv tool dir --bin).Trim()

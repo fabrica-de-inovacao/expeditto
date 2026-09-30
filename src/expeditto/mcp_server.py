@@ -8,7 +8,6 @@ diz em que passo o semestre está e qual é o próximo. Tarefas longas devolvem 
 from __future__ import annotations
 
 import asyncio
-import os
 import re
 from collections import Counter
 
@@ -386,11 +385,13 @@ def atualizar_expeditto(confirmado: bool = False) -> dict:
         return {"atualizado": True, "versao": atualizacao.versao_instalada()}
     if not confirmado:
         return {"atualizado": False, "motivo": "confirmação do docente necessária (confirmado=true)", **nova}
-    # No Windows o servidor trava os próprios arquivos: a reinstalação espera este processo fechar.
-    resultado = atualizacao.atualizar(nova["disponivel"], aguardar_pid=os.getpid())
+    # No Windows o servidor trava os próprios arquivos: um processo separado fecha os servidores do Expeditto
+    # (este e os de outros apps) e reinstala. A conexão com o app cai em alguns segundos.
+    resultado = atualizacao.atualizar(nova["disponivel"])
     if resultado.get("agendada"):
-        resultado["proximo_passo"] = ("Feche o app de IA por completo (inclusive o ícone perto do relógio), espere "
-                                      "1 minuto e abra de novo. A atualização roda assim que ele fechar.")
+        resultado["proximo_passo"] = ("Avise o docente: o Expeditto vai se desconectar em alguns segundos para se "
+                                      "atualizar. Em cerca de 1 minuto, reinicie o app de IA (ou reconecte o "
+                                      "Expeditto) para usar a versão nova.")
     else:
         resultado["proximo_passo"] = "Reinicie o app de IA (ou reconecte o Expeditto) para usar a versão nova."
     return resultado

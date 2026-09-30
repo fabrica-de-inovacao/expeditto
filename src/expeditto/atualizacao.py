@@ -16,6 +16,7 @@ import os
 import platform
 import shutil
 import subprocess
+import sys
 import time
 from importlib import metadata
 
@@ -114,8 +115,18 @@ def _ps(texto: str) -> str:
     return "'" + texto.replace("'", "''") + "'"
 
 
+def _encerrar_em_uso() -> str:
+    """Trecho PowerShell que fecha os processos do Expeditto rodando desta instalação (servidores MCP dos apps
+    de IA, interface). No Windows eles travam os arquivos e impedem a reinstalação; os apps reconectam depois."""
+    pasta = _ps(sys.prefix)
+    return ("Start-Sleep -Seconds 2; Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and "
+            f"$_.ExecutablePath.StartsWith({pasta}, [StringComparison]::OrdinalIgnoreCase) }} | ForEach-Object {{ "
+            "Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Start-Sleep -Seconds 2; ")
+
+
 def atualizar(versao: str, aguardar_pid: int | None = None, visivel: bool = False) -> dict:
-    """Instala a versão pedida. No Windows, agenda num processo separado que espera `aguardar_pid` fechar."""
+    """Instala a versão pedida. No Windows, agenda num processo separado que espera `aguardar_pid` fechar
+    (se informado) e fecha os outros processos do Expeditto antes de reinstalar."""
     cmd = comando(versao)
     if cmd is None:
         return {"ok": False, "mensagem": "Não encontrei o uv. Rode o instalador de novo pelo site."}
@@ -134,6 +145,7 @@ def atualizar(versao: str, aguardar_pid: int | None = None, visivel: bool = Fals
         return {"ok": True, "agendada": False, "mensagem": f"Expeditto atualizado para a versão {versao}."}
 
     espera = f"Wait-Process -Id {aguardar_pid} -ErrorAction SilentlyContinue; " if aguardar_pid else ""
+    espera += _encerrar_em_uso()
     instalar = "& " + " ".join(_ps(p) for p in cmd)
     if visivel:
         script = (f"{espera}Write-Host 'Atualizando o Expeditto para a versao {versao}...' -ForegroundColor Yellow; "
