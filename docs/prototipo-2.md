@@ -88,3 +88,20 @@ Resources: `rit://{semestre}/manifest`, `rit://{semestre}/{topico}/texto`, `rit:
 - Cada item citado nos textos tem comprovante no anexo do tópico; anexos ≤ 10 MB.
 - Pendências apresentadas e resolvidas em conversa; "Alterações de Atividades" preenchido quando houver divergência.
 - Nenhuma rota fora da allowlist; `entregar_relatorio` continua bloqueado; testes automatizados cobrindo form/anexos/textos.
+
+## 7. Resultados das investigações (2026-09-29)
+
+| # | Resultado | Consequência |
+|---|---|---|
+| I1 ✅ | Form Django `POST multipart/form-data` na própria URL; campos: `csrfmiddlewaretoken`, 7× `obs_<topico>` (textarea CKEditor), 7× `arquivo_<topico>` (file, sem `accept`), `alteracoes`, submit `relatorioindividualtrabalhoprofessor_form` ("Salvar"). Nenhum outro campo oculto. Em 2025.1 está vazio. | E5 = GET (CSRF + estado atual) → POST com os 15 campos → GET de verificação. Sem Playwright para preencher. |
+| I2 ⏳ | Não testado: exige **Salvar** de verdade. Falta saber como o form mostra anexo já enviado (substituir/limpar?) e se o POST parcial apaga campos não enviados. | Pedir autorização para um teste controlado num semestre combinado. |
+| I3 ✅ | CKEditor 4 com `allowedContent: true`: aceita HTML livre (`p`, `ul/ol`, `strong`, `table`, alinhamento). | E3 gera HTML simples (parágrafo + lista); tabelas possíveis se ajudarem. |
+| I3+ ✅ | O RIT publicado (PDF) já inclui, por tópico: CH do PIT, lista de atividades do catálogo e, em Gestão, o histórico de funções. Os textos entram como **"Relatos"**. Os **anexos não aparecem no PDF publicado**. Em RITs publicados que consultamos, os relatos costumam ser "As comprovações estão no SUAP.". | O texto não precisa repetir o catálogo do PIT: deve **relatar o que foi feito** (itens concretos, papéis, períodos, documentos). É o maior ganho de qualidade em relação ao que é entregue hoje. |
+| I4 ⚠️ | `gmail.readonly` é escopo **restrito** do Google; admins do Workspace podem bloquear apps não verificados/não confiáveis (Admin console › Segurança › Controles de API). Não há confirmação de Gmail MCP oficial do Google; existem servidores comunitários com download de anexos. | Experimento necessário com a conta @ifma.edu.br: cliente OAuth "desktop" num projeto Google Cloud próprio. Se o IFMA bloquear: fallback = pasta de entrada manual (E8) + busca guiada (a ferramenta monta a query e a docente baixa as atas). |
+| I5 ✅ | `pypdf` (merge) já é dependência; `pikepdf 10.16` instala no Windows/Py3.12; sem Ghostscript. | Compressão via pikepdf (recompressão de streams/imagens); maior tópico atual (2,8 MB) nem precisa. |
+| I6 ✅ | Lattes importado: seções em `h3/h4` + `div`; itens em texto corrido com ano (ex.: "Início: 2025"); granularidade anual. Orientações (andamento/concluídas) e bancas (TCC e comissões) parseáveis. | E7 compara itens do Lattes do ano com as evidências do SUAP e gera pendência "sem comprovante" para o que faltar. |
+| I7 ⏳ | `mcp 2.2.0` (FastMCP) instala. Falta testar o login com janela aberta a partir do processo stdio do Claude Desktop. | Teste no início de E1. |
+
+### Ações que dependem de pessoas
+1. **I2**: autorizar um "Salvar" de teste. Sugestão: 2025.1, com textos e anexos reais gerados pela ferramenta e conferidos antes. É reversível, porque o RIT continua editável até a entrega.
+2. **I4**: criar/usar um projeto Google Cloud e testar o consentimento OAuth com a conta institucional da docente. Se bloquear, perguntar à TI do IFMA sobre liberação (ou seguir com o fallback manual).

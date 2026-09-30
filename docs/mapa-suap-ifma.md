@@ -202,3 +202,10 @@ Na aba `?tab=disciplinas`, o menu "Emitir Declaração de Docência" lista os an
 - Por curso, traz: disciplina, período (AAAA/P), CH, créditos, diário, tipo (Semestral/Anual), **% atribuído** e **% ministrado** (carga horária registrada no diário).
 - Contém o CPF do próprio docente (é o documento oficial dele; vai no anexo como o SUAP emite, D10).
 - Descartado como alternativa: a impressão do diário (`/edu/diario_pdf/{id}/{etapa}/`), que é por etapa, traz a lista de alunos e não é declaração.
+
+## 10. Formulário do RIT em detalhe (I1/I3, 2026-09-29)
+
+- `GET /pit_rit_v2/preencher_relatorio_individual_trabalho/{id}/` → form `method=post`, `enctype=multipart/form-data`, `action=""`.
+- Campos: `csrfmiddlewaretoken` (hidden), `obs_apoio_ensino`, `obs_programas_projetos_ensino`, `obs_orientacao_alunos`, `obs_reunioes`, `obs_pesquisa`, `obs_extensao`, `obs_gestao` (textarea + CKEditor 4), os 7 `arquivo_*` correspondentes (file, até 10 MB), `alteracoes` (textarea + CKEditor) e submit `relatorioindividualtrabalhoprofessor_form` ("Salvar").
+- CKEditor: `allowedContent: true` (HTML livre), toolbar completa (listas, tabelas, alinhamento, fonte).
+- PDF do RIT (`/pit_rit_v2/relatorio_atividade_docente_pdf/{id}/`): cabeçalho + quadro resumo + por tópico: "[CH]", "Atividades" (catálogo marcado no PIT) e "Relatos" (o texto `obs_*`). Em Gestão entra também o histórico de funções, e ao final "Alterações de Atividades". Os anexos não entram no PDF.
