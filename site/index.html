@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expeditto · seu segundo expediente, resolvido</title>
+<meta name="description" content="Expeditto prepara o Relatório Individual de Trabalho (RIT) do SUAP a partir dos seus comprovantes e deixa o rascunho salvo para você conferir e entregar. Gratuito, código aberto, roda no seu computador.">
+<meta property="og:title" content="Expeditto · seu segundo expediente, resolvido">
+<meta property="og:description" content="O RIT do SUAP preparado a partir dos seus comprovantes. Você confere e entrega.">
+<meta name="theme-color" content="#16110D">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fundo: #16110D; --superficie: #211913; --painel: #2C2119; --borda: #3A2C21;
+    --laranja: #F28C28; --ambar: #FFC074; --creme: #FFF3DC; --texto: #F3E6D0; --apagado: #A8998A;
+    --verde: #7BC47F;
+    --titulo: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--fundo); color: var(--texto);
+    font: 17px/1.6 var(--titulo); -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--ambar); }
+  .largura { width: min(1080px, 100% - 32px); margin-inline: auto; }
+
+  /* topo */
+  header { padding: 20px 0; }
+  header .largura { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .marca { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; color: var(--creme); text-decoration: none; }
+  .marca img { width: 30px; height: auto; image-rendering: pixelated; }
+  nav a { color: var(--apagado); text-decoration: none; margin-left: 22px; font-size: 15px; }
+  nav a:hover { color: var(--creme); }
+
+  /* herói */
+  .heroi > *, .duas > * { min-width: 0; }
+  .heroi { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 48px; align-items: center; padding: 56px 0 72px; }
+  .selo { display: inline-block; font: 600 13px var(--mono); color: var(--laranja); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 18px; }
+  h1 { font-size: clamp(40px, 6vw, 68px); line-height: 1.02; margin: 0 0 20px; color: var(--creme); font-weight: 800; letter-spacing: -.02em; }
+  h1 em { font-style: normal; color: var(--laranja); }
+  .lead { font-size: 20px; color: var(--texto); max-width: 34em; margin: 0 0 32px; }
+  .mascote { position: relative; justify-self: center; width: min(360px, 80%); }
+  .mascote img { width: 100%; height: auto; image-rendering: pixelated; animation: balanca 3.2s ease-in-out infinite; transform-origin: 50% 90%; }
+  .mascote::after { content: ""; position: absolute; inset: auto 12% -14px; height: 18px; border-radius: 50%; background: rgba(0,0,0,.45); filter: blur(6px); z-index: -1; }
+  @keyframes balanca { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(-4px); } }
+  @media (prefers-reduced-motion: reduce) { .mascote img { animation: none; } }
+
+  /* instalação */
+  .instalar { background: var(--superficie); border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; max-width: 620px; }
+  .abas { display: flex; border-bottom: 1px solid var(--borda); }
+  .abas button {
+    flex: 0 0 auto; background: none; border: 0; color: var(--apagado); font: 600 14px var(--titulo);
+    padding: 12px 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .abas button[aria-selected="true"] { color: var(--creme); border-bottom-color: var(--laranja); }
+  .comando { display: flex; align-items: center; gap: 12px; padding: 16px 18px; }
+  .comando code { flex: 1; min-width: 0; font: 14px/1.5 var(--mono); color: var(--creme); white-space: pre-wrap; word-break: break-all; }
+  .comando code::before { content: "› "; color: var(--laranja); }
+  .copiar {
+    flex: 0 0 auto; background: var(--laranja); color: var(--fundo); border: 0; border-radius: 8px;
+    font: 700 14px var(--titulo); padding: 8px 14px; cursor: pointer;
+  }
+  .copiar:hover { background: var(--ambar); }
+  .dica { font-size: 14px; color: var(--apagado); padding: 0 18px 16px; margin: 0; }
+
+  /* seções */
+  section { padding: 72px 0; border-top: 1px solid var(--borda); }
+  h2 { font-size: clamp(28px, 4vw, 40px); color: var(--creme); margin: 0 0 12px; letter-spacing: -.01em; }
+  .sub { color: var(--apagado); margin: 0 0 40px; max-width: 40em; }
+  .passos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: passo; list-style: none; padding: 0; margin: 0; }
+  .passos li { background: var(--superficie); border: 1px solid var(--borda); border-radius: 12px; padding: 22px; counter-increment: passo; }
+  .passos li::before { content: counter(passo); display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--laranja); color: var(--fundo); font-weight: 800; margin-bottom: 14px; }
+  .passos h3 { margin: 0 0 6px; font-size: 19px; color: var(--creme); }
+  .passos p { margin: 0; font-size: 15px; color: var(--apagado); }
+
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+  .chat { background: var(--superficie); border: 1px solid var(--borda); border-radius: 14px; padding: 22px; font-size: 15px; }
+  .fala { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; max-width: 92%; }
+  .fala.voce { background: var(--painel); margin-left: auto; }
+  .fala.exp { border-left: 3px solid var(--laranja); background: #251C15; }
+  .barra { font: 13px var(--mono); color: var(--ambar); display: block; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .apps { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; list-style: none; margin: 18px 0 0; }
+  .apps li { border: 1px solid var(--borda); border-radius: 999px; padding: 6px 14px; font-size: 14px; color: var(--creme); }
+
+  .garantias { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .garantias div { padding: 22px; border-radius: 12px; background: var(--superficie); border: 1px solid var(--borda); }
+  .garantias strong { display: block; color: var(--creme); font-size: 18px; margin-bottom: 6px; }
+  .garantias span { color: var(--apagado); font-size: 15px; }
+
+  footer { padding: 40px 0 56px; border-top: 1px solid var(--borda); color: var(--apagado); font-size: 14px; }
+  footer .largura { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+
+  @media (max-width: 860px) {
+    .heroi, .duas { grid-template-columns: 1fr; }
+    .heroi { padding-top: 24px; gap: 24px; }
+    .mascote { order: -1; width: 200px; }
+    .passos, .garantias { grid-template-columns: 1fr 1fr; }
+    nav { display: none; }
+  }
+  @media (max-width: 520px) {
+    .passos, .garantias { grid-template-columns: 1fr; }
+    .comando { flex-direction: column; align-items: stretch; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="largura">
+    <a class="marca" href="#"><img src="favicon.svg" alt="">Expeditto</a>
+    <nav>
+      <a href="#como">Como funciona</a>
+      <a href="#onde">Onde funciona</a>
+      <a href="#seguranca">Segurança</a>
+      <a href="https://github.com/vnschneider/expeditto">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="largura heroi">
+    <div>
+      <span class="selo">Para docentes do IFMA · SUAP</span>
+      <h1>Seu segundo expediente, <em>resolvido.</em></h1>
+      <p class="lead">O Expeditto junta seus comprovantes no SUAP, organiza por tópico, escreve os relatos e deixa o
+        <strong>RIT salvo como rascunho</strong>. Você confere e entrega.</p>
+
+      <div class="instalar" id="instalar">
+        <div class="abas" role="tablist" aria-label="Sistema operacional">
+          <button role="tab" aria-selected="true" data-so="windows">Windows</button>
+          <button role="tab" aria-selected="false" data-so="unix">macOS e Linux</button>
+        </div>
+        <div class="comando">
+          <code id="cmd"></code>
+          <button class="copiar" id="copiar" type="button">Copiar</button>
+        </div>
+        <p class="dica" id="dica"></p>
+      </div>
+    </div>
+    <div class="mascote"><img src="mascote-acenando.svg" alt="Mascote do Expeditto, um despertador laranja, acenando" width="340" height="320"></div>
+  </div>
+
+  <section id="como">
+    <div class="largura">
+      <h2>Como funciona</h2>
+      <p class="sub">Um roteiro de quatro passos. O Expeditto conduz; você decide o que entra.</p>
+      <ol class="passos">
+        <li><h3>Coleta</h3><p>Diários, estágios, TCCs, bancas, portarias, projetos e o seu Lattes, direto do SUAP.</p></li>
+        <li><h3>Pendências</h3><p>O que ficou sem comprovante aparece agrupado, e você decide: manter, deixar de fora ou justificar.</p></li>
+        <li><h3>Relatos e anexos</h3><p>Um relato por tópico, com os fatos contados, e um PDF de comprovantes de até 10 MB.</p></li>
+        <li><h3>Rascunho no SUAP</h3><p>Com o seu OK, tudo é salvo no formulário do RIT. A entrega continua sendo sua.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="onde">
+    <div class="largura duas">
+      <div>
+        <h2>No seu assistente de IA ou no terminal</h2>
+        <p class="sub">Converse com o Claude como falaria com um colega. O instalador conecta o Expeditto aos apps que
+          você já usa, e o terminal tem uma interface própria, com o mascote.</p>
+        <ul class="apps">
+          <li>Claude Desktop</li><li>Claude Code</li><li>Codex</li><li>Gemini CLI</li><li>Antigravity</li><li>Terminal</li>
+        </ul>
+      </div>
+      <div class="chat" aria-label="Exemplo de conversa">
+        <p class="fala voce">Me ajuda com meu relatório do semestre?</p>
+        <p class="fala exp">Vou buscar seus comprovantes de 2025.2 no SUAP.
+          <span class="barra">▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░  62%  · Pasta funcional</span></p>
+        <p class="fala exp">Organizei tudo. Antes de escrever, preciso de você em 5 grupos de pendências. Vamos um por vez?</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="seguranca">
+    <div class="largura">
+      <h2>O que o Expeditto nunca faz</h2>
+      <p class="sub">Ele trabalha com a sua sessão, no seu computador, e só dentro das telas do seu próprio RIT.</p>
+      <div class="garantias">
+        <div><strong>Não vê sua senha</strong><span>Você entra no SUAP numa janela do navegador. Só a sessão fica guardada, no cofre de senhas do sistema.</span></div>
+        <div><strong>Não entrega o RIT</strong><span>Ele salva como rascunho e mostra os links. Quem submete para avaliação é você.</span></div>
+        <div><strong>Não manda dados para fora</strong><span>O acervo fica numa pasta sua. O código é aberto (AGPL-3.0) e pode ser auditado.</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="largura">
+    <span>Expeditto é uma ferramenta independente e não oficial, sem vínculo com o IFMA ou com o SUAP.</span>
+    <span><a href="https://github.com/vnschneider/expeditto">Código-fonte</a> · <a href="https://github.com/vnschneider/expeditto/blob/main/LICENSE">AGPL-3.0</a></span>
+  </div>
+</footer>
+
+<script>
+  const base = location.origin.startsWith("http") ? location.origin : "https://expeditto.fabitz.com.br";
+  const opcoes = {
+    windows: {
+      cmd: `powershell -ExecutionPolicy ByPass -c "irm ${base}/install.ps1 | iex"`,
+      dica: "Abra o PowerShell (menu Iniciar → digite PowerShell), cole o comando e tecle Enter.",
+    },
+    unix: {
+      cmd: `curl -LsSf ${base}/install.sh | sh`,
+      dica: "Abra o Terminal, cole o comando e tecle Enter. Não precisa de senha de administrador.",
+    },
+  };
+  const abas = document.querySelectorAll(".abas button");
+  function mostrar(so) {
+    abas.forEach(b => b.setAttribute("aria-selected", String(b.dataset.so === so)));
+    document.getElementById("cmd").textContent = opcoes[so].cmd;
+    document.getElementById("dica").textContent = opcoes[so].dica;
+  }
+  abas.forEach(b => b.addEventListener("click", () => mostrar(b.dataset.so)));
+  mostrar(/Mac|Linux|X11/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent) ? "unix" : "windows");
+  document.getElementById("copiar").addEventListener("click", async (e) => {
+    try {
+      await navigator.clipboard.writeText(document.getElementById("cmd").textContent);
+      e.target.textContent = "Copiado!";
+    } catch { e.target.textContent = "Selecione e copie"; }
+    setTimeout(() => (e.target.textContent = "Copiar"), 1800);
+  });
+</script>
+</body>
+</html>

@@ -10,6 +10,25 @@ Funciona pelo terminal (`expeditto`) e dentro do seu assistente de IA (servidor 
 - Rotas e telas do SUAP mapeadas: [`docs/mapa-suap-ifma.md`](docs/mapa-suap-ifma.md)
 - Decisões e regras de negócio: [`docs/decisoes.md`](docs/decisoes.md)
 
+## Instalação
+
+Windows (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://expeditto.fabitz.com.br/install.ps1 | iex"
+```
+
+macOS e Linux:
+
+```bash
+curl -LsSf https://expeditto.fabitz.com.br/install.sh | sh
+```
+
+O instalador coloca o [uv](https://docs.astral.sh/uv/) se faltar, instala o Expeditto e abre o assistente
+`expeditto instalar`: navegador para o login, pasta de dados, conexão com os apps de IA (Claude Desktop, Claude Code,
+Codex, Gemini CLI, Antigravity), login no SUAP e diagnóstico. Depois: `expeditto atualizar` e `expeditto desinstalar`
+(tira o Expeditto dos apps; os dados só saem se você pedir).
+
 ## Interface visual (terminal)
 
 ```bash
