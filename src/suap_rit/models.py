@@ -107,6 +107,7 @@ class TipoEvidencia(StrEnum):
     AFASTAMENTO = "afastamento"
     CAPACITACAO = "capacitacao"
     ATA = "ata"  # ata/convocação recebida por e-mail (registrar_ata, D41)
+    MANUAL = "manual"  # comprovante colocado pelo docente na pasta de entrada (E8)
 
 
 class Evidencia(BaseModel):

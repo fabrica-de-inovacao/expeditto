@@ -151,3 +151,16 @@ Fontes: [conector Gmail do Claude](https://claude.com/connectors/gmail), [Worksp
 | D46 | **Uso local por ora.** A arquitetura remota (VPS, multiusuário) foi só investigação e está arquivada em `arquitetura-remota.md`. | Servidor MCP roda na máquina do docente (stdio). Sessão SUAP, acervo e tokens ficam só nela (D26, D45). |
 | D47 | **Hosts desktop suportados** (todos via MCP stdio, mesmo comando `suap-rit mcp`): **Claude Desktop**, **Claude Code**, **OpenAI Codex** (CLI, IDE e app desktop, `~/.codex/config.toml`), **Gemini CLI / Antigravity CLI** (`~/.gemini/settings.json` ou `mcp_config.json`). | O chat web do ChatGPT e o Gemini Spark só aceitam MCP remoto → fora do escopo (D44). Guia de configuração: `docs/integracao-hosts.md`. |
 | D48 | E-mail no host que tiver conector; se o host não tiver (ex.: CLIs), usa o backup OAuth da CLI (D42) ou a pasta de entrada (D11). | `registrar_ata` é igual para todos os hosts. |
+
+## 14. Fechamento do protótipo 2 (2026-09-29)
+
+| # | Decisão | Regra |
+|---|---|---|
+| D49 | **Lattes como detector de lacunas** (E7). | Itens do Lattes importado no SUAP do ano do semestre (publicações, orientações, bancas, organização de eventos) sem evidência correspondente viram pendência `lattes_sem_comprovante` com o título (sem a lista de autores). Correspondência: ≥ 70% dos termos de um título do acervo presentes no item. Em 2025.1 foram 21 itens (anais, resumos, livro, capítulos, orientações de IC). |
+| D50 | **Pasta de entrada** (E8): `AAAA.P/entrada/<topico>/`. | PDF/JPG/PNG (imagens viram PDF). Arquivo solto → pendência `entrada_sem_topico` → `classificar_entrada`. Relida a cada `coletar`/`montar`. |
+| D51 | **Backup Gmail implementado** (D42): `suap-rit gmail-login` (repetível por conta) e `gmail-atas` / tools `buscar_atas_gmail` + `registrar_atas_gmail`. | Busca por palavras-chave no período do semestre (−15/+30 dias); o docente escolhe as candidatas; o PDF anexo é baixado. Credenciais do app em `~/suap-rit/google_client.json`. |
+| D52 | **Semestre de atividades com período** usa o período letivo real; a janela até o próximo semestre vale só para **eventos pontuais**. | Projeto iniciado em julho é do 2º semestre, e não das férias do 1º. Corrigiu 2025.1: Programas 3→1, Pesquisa 21→17, Orientação 36→32. |
+| D53 | Decisões de pendências **em lote** (`resolver_pendencia(numeros=[...])`). | Útil para as lacunas do Lattes. |
+| D54 | Login com **perfil persistente** do navegador (D45). | `~/suap-rit/_navegador`; `suap-rit logout` apaga sessão e perfil. |
+
+Observação: o rascunho salvo no SUAP em 2025.1 (teste da I2) foi gerado **antes** da D52 e inclui projetos de julho/agosto. Refazer `montar` → textos → `salvar_no_suap` após a revisão da docente.

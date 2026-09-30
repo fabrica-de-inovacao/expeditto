@@ -24,15 +24,16 @@ def _carregar(codigo: str) -> dict[str, dict]:
     return json.loads(origem.read_text(encoding="utf-8")) if origem.exists() else {}
 
 
-def resolver(manifest: Manifest, numero: int, decisao: str, justificativa: str | None = None) -> Manifest:
-    """`numero` é a posição (1..N) na lista de pendências do manifest."""
+def resolver(manifest: Manifest, numero: int | list[int], decisao: str, justificativa: str | None = None) -> Manifest:
+    """`numero`: posição (1..N) na lista de pendências do manifest, ou uma lista (decisão em lote)."""
     if decisao not in DECISOES:
         raise ValueError(f"decisão inválida: {decisao} (use {', '.join(DECISOES)})")
     if decisao == "justificar" and not (justificativa or "").strip():
         raise ValueError("'justificar' exige o texto da justificativa (escrito/confirmado pelo docente)")
-    pendencia = manifest.pendencias[numero - 1]
+    numeros = numero if isinstance(numero, list) else [numero]
     decisoes = _carregar(manifest.semestre.codigo)
-    decisoes[pendencia.chave] = {"resolucao": decisao, "justificativa": justificativa}
+    for n in numeros:
+        decisoes[manifest.pendencias[n - 1].chave] = {"resolucao": decisao, "justificativa": justificativa}
     _arquivo(manifest.semestre.codigo).write_text(json.dumps(decisoes, ensure_ascii=False, indent=2),
                                                   encoding="utf-8")
     aplicar(manifest)

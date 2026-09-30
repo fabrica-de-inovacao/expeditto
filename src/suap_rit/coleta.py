@@ -236,12 +236,18 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
     evidencias = diarios_semestre + ensino.coletar(client)
     progresso("Pasta funcional, projetos e funções")
     evidencias += servidor.coletar(client, perfil, cache)
+    itens_lattes = []
+    if perfil.lattes_suap:
+        progresso("Lattes importado no SUAP (detector de lacunas)")
+        from suap_rit import lattes
+        itens_lattes = lattes.parse(client.html(perfil.lattes_suap))
     _limitar_portarias_por_funcao(evidencias)
     _encerrar_substituidas(evidencias)
     _comprovar_funcoes(evidencias)
     _comprovante_por_banca(evidencias)
 
-    do_semestre = [e for e in evidencias if semestres.pertence(e, codigo, janela)]
+    letivo = (sems[codigo].inicio, sems[codigo].fim)
+    do_semestre = [e for e in evidencias if semestres.pertence(e, codigo, janela, letivo=letivo)]
     pasta = acervo.pasta_semestre(codigo)
     itens: list[ItemAcervo] = []
     pendencias: list[Pendencia] = []
@@ -303,9 +309,11 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
         itens=itens,
         pendencias=pendencias,
     )
-    from suap_rit import atas, pendencias as decisoes  # import tardio: evita ciclo com textos
+    from suap_rit import atas, entrada, lattes, pendencias as decisoes  # import tardio: evita ciclo com textos
 
     atas.aplicar(manifest)  # atas registradas pelo host (e-mail) sobrevivem a novas coletas
+    entrada.aplicar(manifest)  # comprovantes colocados pelo docente na pasta de entrada (E8)
+    manifest.pendencias += lattes.lacunas(manifest, itens_lattes)  # E7
     decisoes.aplicar(manifest)  # decisões já tomadas pelo docente não são perguntadas de novo
     acervo.salvar_manifest(manifest)
     return manifest

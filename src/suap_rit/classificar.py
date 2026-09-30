@@ -29,6 +29,7 @@ _POR_TIPO: dict[TipoEvidencia, tuple[list[Topico], str]] = {
     TipoEvidencia.FUNCAO: ([T.GESTAO], "exercício de função/coordenação (D13, D16)"),
     TipoEvidencia.CAPACITACAO: ([T.REUNIOES, T.APOIO_ENSINO], "formação/encontro pedagógico (D14)"),
     TipoEvidencia.AFASTAMENTO: ([], "contexto: afastamento (não é comprovante)"),
+    TipoEvidencia.MANUAL: ([], "tópico definido pelo docente (pasta de entrada)"),
 }
 
 # Tipos de arquivo da pasta funcional que já definem o tópico.

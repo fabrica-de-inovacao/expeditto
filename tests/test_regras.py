@@ -217,3 +217,13 @@ def test_curso_com_sufixo_do_campus():
     from suap_rit.coleta import _curso
 
     assert _curso("nde do curso bacharelado em sistemas de informação do campus exemplo") == "sistemas-de-informacao"
+
+
+def test_projeto_que_comeca_nas_ferias_e_do_semestre_seguinte():
+    j = semestres.janelas(SEMS)
+    letivo = (SEMS["2025.1"].inicio, SEMS["2025.1"].fim)
+    projeto = Evidencia(id="p", fonte="t", tipo=TipoEvidencia.PROJETO_PESQUISA, titulo="P",
+                        inicio=date(2025, 7, 1), fim=date(2025, 12, 31))
+    assert not semestres.pertence(projeto, "2025.1", j["2025.1"], letivo=letivo)
+    banca = Evidencia(id="b", fonte="t", tipo=TipoEvidencia.BANCA, titulo="B", data_evento=date(2025, 7, 10))
+    assert semestres.pertence(banca, "2025.1", j["2025.1"], letivo=letivo)  # evento pontual: janela

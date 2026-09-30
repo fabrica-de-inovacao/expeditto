@@ -33,6 +33,8 @@ _ROTULO_TIPO = {
     TipoEvidencia.PORTARIA: ("designação por portaria", "designações por portaria"),
     TipoEvidencia.FUNCAO: ("função exercida", "funções exercidas"),
     TipoEvidencia.CAPACITACAO: ("formação/encontro pedagógico", "formações/encontros pedagógicos"),
+    TipoEvidencia.ATA: ("ata/convocação de reunião", "atas/convocações de reuniões"),
+    TipoEvidencia.MANUAL: ("comprovante adicional", "comprovantes adicionais"),
 }
 
 

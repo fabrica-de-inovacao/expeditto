@@ -6,7 +6,7 @@ Assistente do **Relatório Individual de Trabalho (RIT)** do SUAP IFMA. Faz o ga
 - Rotas e telas do SUAP mapeadas: [`docs/mapa-suap-ifma.md`](docs/mapa-suap-ifma.md)
 - Decisões e regras de negócio: [`docs/decisoes.md`](docs/decisoes.md)
 
-## Uso (protótipo 1 — CLI)
+## Uso (CLI)
 
 ```bash
 uv sync
@@ -14,7 +14,13 @@ uv run suap-rit login            # janela do SUAP para login (CAPTCHA/Gov.br); f
 uv run suap-rit semestres        # estado do PIT/RIT por semestre + links
 uv run suap-rit coletar 2025.1   # coleta, classifica e baixa comprovantes
 uv run suap-rit status 2025.1    # resumo por tópico + pendências
-uv run suap-rit logout           # apaga a sessão do keyring
+uv run suap-rit montar 2025.1    # 1 PDF por tópico (capa + índice), ≤ 10 MB
+uv run suap-rit textos 2025.1    # rascunhos dos Relatos (HTML)
+uv run suap-rit entrada 2025.1   # onde colocar comprovantes próprios
+uv run suap-rit preencher 2025.1 [--salvar]   # prévia; com --salvar grava rascunho (nunca entrega)
+uv run suap-rit gmail-login / gmail-atas 2025.1   # backup de atas por e-mail
+uv run suap-rit mcp              # servidor MCP (ver docs/integracao-hosts.md)
+uv run suap-rit logout           # apaga a sessão do keyring e o perfil do navegador
 ```
 
 O acervo fica em `~/suap-rit/` (ou em `SUAP_RIT_HOME`):

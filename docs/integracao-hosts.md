@@ -54,9 +54,10 @@ args = ["--directory", "<REPO>", "run", "suap-rit", "mcp"]
 Peça ao assistente, por exemplo: *"Prepare meu RIT de 2025.1."* As instruções do servidor conduzem o fluxo:
 login → coleta → atas do e-mail → pendências → anexos → relatos → prévia → **Salvar** (com a sua confirmação) → links para conferir e entregar.
 
-Hosts sem integração de e-mail (CLIs) seguem sem atas por e-mail. Alternativas: backup OAuth da CLI (D42, a implementar) ou colocar os PDFs na pasta de entrada (E8).
+Hosts sem integração de e-mail (CLIs): autorize o Gmail uma vez com `uv run suap-rit gmail-login` (repita para a conta acadêmica); o assistente usa `buscar_atas_gmail` / `registrar_atas_gmail`. Requer `~/suap-rit/google_client.json` (credencial OAuth "Desktop app" do projeto Google Cloud da ferramenta). Alternativa: PDFs na pasta de entrada (`pasta_entrada`).
 
 ## Ferramentas expostas
 `status_sessao`, `login`, `status_tarefa`, `listar_semestres`, `coletar_semestre`, `resumo_semestre`, `registrar_ata`,
-`resolver_pendencia`, `montar_anexos`, `contexto_topico`, `salvar_texto`, `gerar_rascunhos`, `gerar_alteracoes`,
+`pasta_entrada`, `classificar_entrada`, `buscar_atas_gmail`, `registrar_atas_gmail`,
+`resolver_pendencia` (aceita vários números), `montar_anexos`, `contexto_topico`, `salvar_texto`, `gerar_rascunhos`, `gerar_alteracoes`,
 `previa_preenchimento`, `salvar_no_suap` (exige `confirmado=true`; só grava rascunho, nunca entrega).

@@ -17,7 +17,7 @@ from typing import Any
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 
-from suap_rit import acervo, anexos, atas, auth, coleta, config, formulario, pendencias, textos
+from suap_rit import acervo, anexos, atas, auth, coleta, config, entrada, formulario, gmail, pendencias, textos
 from suap_rit.client import SessaoExpirada, SuapClient
 from suap_rit.models import Topico
 from suap_rit.suap import planos
@@ -177,12 +177,54 @@ def registrar_ata(semestre: str, assunto: str, data: str, remetente: str, id_men
             "observacao": None if ata["anexo_original"] else "gerado PDF com o corpo do e-mail; pendência criada"}
 
 
+@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+def pasta_entrada(semestre: str) -> dict:
+    """Onde o docente coloca comprovantes próprios (PDF/JPG/PNG), uma subpasta por tópico (E8)."""
+    raiz = entrada.pasta(semestre)
+    soltos = [p.name for p in raiz.iterdir() if p.is_file()]
+    return {"pasta": str(raiz), "subpastas": [t.value for t in Topico], "arquivos_sem_topico": soltos,
+            "dica": "Depois de adicionar arquivos, chame `montar_anexos` para incluí-los."}
+
+
 @servidor.tool()
-def resolver_pendencia(semestre: str, numero: int, decisao: str, justificativa: str | None = None) -> dict:
-    """Registra a decisão DO DOCENTE sobre a pendência `numero` (ver resumo_semestre).
-    decisao: manter | remover_item | justificar (exige justificativa ditada pelo docente) | ignorar."""
-    manifest = pendencias.resolver(_manifest(semestre), numero, decisao, justificativa)
-    return _resumo(manifest)["pendencias"][numero - 1]
+def classificar_entrada(semestre: str, arquivo: str, topico: str) -> dict:
+    """Move um arquivo solto da pasta de entrada para o tópico informado pelo docente."""
+    destino = entrada.classificar(semestre, arquivo, topico)
+    return {"movido_para": str(destino)}
+
+
+@servidor.tool()
+def buscar_atas_gmail(semestre: str) -> dict:
+    """BACKUP para hosts SEM integração de e-mail: busca atas no Gmail das contas autorizadas
+    na CLI (`suap-rit gmail-login`). Devolve candidatas numeradas; o docente escolhe quais registrar."""
+    manifest = _manifest(semestre)
+    if not gmail.contas():
+        return {"erro": "nenhuma conta Gmail autorizada; peça ao docente para rodar `suap-rit gmail-login`"}
+    cand = gmail.buscar(manifest.semestre)
+    return {"candidatas": [{"numero": n, "assunto": c.assunto, "data": c.data, "remetente": c.remetente,
+                            "trecho": c.trecho[:200], "pdfs": c.anexos_pdf} for n, c in enumerate(cand, 1)]}
+
+
+@servidor.tool()
+def registrar_atas_gmail(semestre: str, numeros: list[int]) -> dict:
+    """Registra as candidatas escolhidas pelo docente (números de `buscar_atas_gmail`), baixando o PDF anexo."""
+    registradas = gmail.registrar(semestre, numeros)
+    manifest = _manifest(semestre)
+    atas.aplicar(manifest)
+    pendencias.aplicar(manifest)
+    acervo.salvar_manifest(manifest)
+    return {"registradas": [{"assunto": a["assunto"], "anexo_original": a["anexo_original"]} for a in registradas]}
+
+
+@servidor.tool()
+def resolver_pendencia(semestre: str, numeros: list[int], decisao: str, justificativa: str | None = None) -> dict:
+    """Registra a decisão DO DOCENTE sobre uma ou mais pendências (números de resumo_semestre).
+    decisao: manter | remover_item | justificar (exige justificativa ditada pelo docente) | ignorar.
+    Pendências 'lattes_sem_comprovante': se o docente tiver o comprovante, oriente-o a colocá-lo na
+    pasta de entrada (ver `pasta_entrada`) e marque 'manter'; se não entra no RIT, 'ignorar'."""
+    manifest = pendencias.resolver(_manifest(semestre), numeros, decisao, justificativa)
+    todas = _resumo(manifest)["pendencias"]
+    return {"atualizadas": [todas[n - 1] for n in numeros]}
 
 
 @servidor.tool()

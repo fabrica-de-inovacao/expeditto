@@ -38,11 +38,16 @@ def intervalo(ev: Evidencia, hoje: date | None = None) -> tuple[date, date] | No
     return None
 
 
-def pertence(ev: Evidencia, codigo: str, janela: tuple[date, date], hoje: date | None = None) -> bool:
+def pertence(ev: Evidencia, codigo: str, janela: tuple[date, date], hoje: date | None = None,
+             letivo: tuple[date, date] | None = None) -> bool:
+    """Evento pontual (banca, ata) → janela (inclui as férias seguintes).
+    Atividade com período (projeto, portaria, estágio) → período letivo real, se informado:
+    um projeto que começa em julho é do semestre seguinte, não das férias do anterior."""
     if ev.data_evento is None and ev.semestre_letivo:
         return ev.semestre_letivo == codigo
     periodo = intervalo(ev, hoje)
     if periodo is None:
         return False
     inicio, fim = periodo
-    return inicio <= janela[1] and fim >= janela[0]  # D19: interseção → entra em todos
+    alvo = letivo if (letivo and ev.data_evento is None and all(letivo)) else janela
+    return inicio <= alvo[1] and fim >= alvo[0]  # D19: interseção → entra em todos

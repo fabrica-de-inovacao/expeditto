@@ -152,6 +152,10 @@ def montar_topico(manifest: Manifest, topico: Topico, nome: str) -> tuple[AnexoT
 
 
 def montar(manifest: Manifest, nome: str) -> Manifest:
+    from suap_rit import entrada, pendencias as decisoes
+
+    entrada.aplicar(manifest)  # inclui o que o docente acabou de colocar na pasta de entrada
+    decisoes.aplicar(manifest)
     manifest.anexos = {}
     manifest.pendencias = [p for p in manifest.pendencias if p.tipo != "anexo_grande"]
     for topico in Topico:
