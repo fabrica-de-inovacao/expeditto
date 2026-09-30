@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import io
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from pypdf import PdfReader
 
@@ -123,6 +124,9 @@ def coletar_portarias(client: SuapClient, perfil: Perfil, cache: Cache, pagina: 
     return evidencias
 
 
+PARALELO = 4  # requisições simultâneas ao SUAP (educado com o servidor, 3-4x mais rápido)
+
+
 # -- projetos ---------------------------------------------------------------------
 def parse_projetos(pagina: str) -> list[Evidencia]:
     evidencias, vistos = [], set()
@@ -210,19 +214,30 @@ def _equipe(papel: str, carga: str, bloco) -> dict[str, str]:
 def completar_projetos(client: SuapClient, cache: Cache, evidencias: list[Evidencia],
                        matricula: str, progresso=lambda m, f=None: None) -> list[Evidencia]:
     """Datas de execução e papel na equipe de cada projeto; devolve as evidências
-    de orientação de discentes encontradas nas equipes (regra P1)."""
-    orientacoes = []
-    for n, ev in enumerate(evidencias, 1):
-        progresso(f"Projetos ({n}/{len(evidencias)}): {ev.titulo[:50]}", n / max(len(evidencias), 1))
+    de orientação de discentes encontradas nas equipes (regra P1). Lê até PARALELO projetos ao mesmo tempo."""
+    def ler(ev: Evidencia) -> dict:
+        pagina = client.html(f"{ev.url_pagina}?tab=equipe", aba=True)
+        inicio, fim = datas_projeto(pagina)
+        return {"inicio": str(inicio) if inicio else None, "fim": str(fim) if fim else None,
+                **parse_equipe(pagina, matricula)}
 
-        def ler() -> dict:
-            pagina = client.html(f"{ev.url_pagina}?tab=equipe", aba=True)
-            inicio, fim = datas_projeto(pagina)
-            return {"inicio": str(inicio) if inicio else None, "fim": str(fim) if fim else None,
-                    **parse_equipe(pagina, matricula)}
+    def dados_de(ev: Evidencia) -> dict:
         # projetos concluídos não mudam; os em andamento são relidos a cada coleta
-        dados = cache.json(f"projeto-{ev.url_pagina}", ler) if "Conclu" in ev.extras.get("situacao", "") \
-            else ler()
+        if "Conclu" in ev.extras.get("situacao", ""):
+            return cache.json(f"projeto-{ev.url_pagina}", lambda: ler(ev))
+        return ler(ev)
+
+    resultados: dict[str, dict] = {}
+    with ThreadPoolExecutor(PARALELO) as pool:
+        futuros = {pool.submit(dados_de, ev): ev for ev in evidencias}
+        for n, futuro in enumerate(as_completed(futuros), 1):
+            ev = futuros[futuro]
+            resultados[ev.id] = futuro.result()
+            progresso(f"Projetos ({n}/{len(evidencias)}): {ev.titulo[:50]}", n / max(len(evidencias), 1))
+
+    orientacoes = []
+    for ev in evidencias:
+        dados = resultados[ev.id]
         ev.inicio, ev.fim = h.parse_data(dados.get("inicio")), h.parse_data(dados.get("fim"))
         if dados.get("papel"):
             ev.papel = dados["papel"]

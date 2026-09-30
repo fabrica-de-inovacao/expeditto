@@ -16,7 +16,7 @@ from textual.widgets import (Button, Footer, Input, Label, Markdown, OptionList,
                              Static, TabbedContent, TabPane)
 from textual.widgets.option_list import Option
 
-from expeditto import acervo, anexos, auth, coleta, entrada, formulario, pendencias, roteiro, textos
+from expeditto import acervo, anexos, auth, coleta, entrada, formulario, links, pendencias, roteiro, textos
 from expeditto.client import SessaoExpirada, SuapClient
 from expeditto.models import Topico
 from expeditto.tui.componentes import TOPICO_CURTO, PainelTarefa, Trilha, html_para_texto, humor, mascotes
@@ -26,12 +26,6 @@ ABA_DA_ETAPA = {"coletar": "coleta", "pendencias": "pendencias", "alteracoes": "
 BOTAO_DA_ETAPA = {"login": "Entrar no SUAP", "coletar": "Coletar comprovantes", "pendencias": "Ver pendências",
                   "alteracoes": "Montar Alterações", "anexos": "Montar anexos", "relatos": "Escrever relatos",
                   "previa": "Conferir e salvar", "concluido": "Ver links"}
-TITULOS_PENDENCIA = {
-    "lattes_sem_comprovante": "Lattes sem comprovante", "diario_incompleto": "Diários incompletos",
-    "sem_comprovante": "Atividades sem comprovante", "ata_sem_anexo": "Atas sem o PDF original",
-    "datas": "Portarias sem vigência", "afastamento": "Afastamentos", "divergencia_pit": "Diferenças em relação ao PIT",
-    "entrada_sem_topico": "Arquivos sem tópico", "anexo_grande": "Anexo acima de 10 MB",
-}
 LIMITE_MB = 10
 
 
@@ -224,54 +218,127 @@ class Preparo(Screen):
             await caixa.mount(Static("Colete os comprovantes primeiro.", classes="vazio"))
             return
         self._grupos = roteiro.pendencias_agrupadas(manifest)
+        self._itens = {it["numero"]: it for g in self._grupos for it in g["itens"]}
         decididas = [p for p in manifest.pendencias if p.resolucao]
         widgets = []
         if not self._grupos:
             widgets.append(Static("✓ Nenhuma pendência em aberto.", classes="vazio ok"))
         else:
-            widgets.append(Static("Marque os itens e escolha o que fazer. Justificativas vão para "
-                                  "“Alterações de Atividades” exatamente como você escrever.", classes="explica"))
+            widgets.append(Static("Para cada grupo: leia o que é, marque os itens e escolha o que fazer. Setas para "
+                                  "cima e para baixo mostram os detalhes e os links de cada item.", classes="explica"))
         for i, grupo in enumerate(self._grupos):
-            itens = SelectionList[int](*[(f"{it['numero']:>3}. {it['resumo'][:110]}", it["numero"], True)
+            itens = SelectionList[int](*[(f"{it['numero']:>3}. {it['resumo'][:120]}", it["numero"], True)
                                          for it in grupo["itens"]], id=f"itens-{i}", classes="itens")
-            cartao = Vertical(
-                Label(f"{TITULOS_PENDENCIA.get(grupo['tipo'], grupo['tipo'])} · {grupo['quantidade']}",
-                      classes="cartao-titulo"),
-                Static(grupo["pergunta_sugerida"], classes="pergunta"),
-                itens,
-                Horizontal(Button("Manter", id=f"manter-{i}", variant="success"),
-                           Button("Deixar de fora", id=f"ignorar-{i}"),
-                           Button("Remover do relato", id=f"remover_item-{i}", variant="error"),
-                           classes="botoes"),
-                Horizontal(Input(placeholder="Justificativa (vai para Alterações de Atividades)", id=f"texto-{i}"),
-                           Button("Justificar", id=f"justificar-{i}", variant="warning"), classes="justificar"),
-                classes="cartao")
-            widgets.append(cartao)
+            explicacao = [f"[b]O que é:[/b] {grupo['o_que_e']}", f"[b]Por que importa:[/b] {grupo['por_que_importa']}"]
+            explicacao += [f"[b]{o['rotulo']}:[/b] {o['efeito']}" for o in grupo["opcoes"]]
+            if grupo["dica"]:
+                explicacao.append(f"[b]Dica:[/b] {grupo['dica']}")
+            variantes = {"manter": "success", "remover_item": "error", "justificar": "warning"}
+            botoes = [Button(o["rotulo"], id=f"decidir-{o['decisao']}-{i}", classes="decidir",
+                             variant=variantes.get(o["decisao"], "default"))
+                      for o in grupo["opcoes"] if o["decisao"] != "justificar"]
+            filhos = [Label(f"{grupo['titulo']} · {grupo['quantidade']}", classes="cartao-titulo"),
+                      Static(grupo["pergunta_sugerida"], classes="pergunta"),
+                      Static("\n".join(explicacao), classes="explicacao"),
+                      itens,
+                      Static("", id=f"detalhe-{i}", classes="detalhe-item"),
+                      Horizontal(Button("Ver no SUAP", id=f"link-suap-{i}", classes="ver-link"),
+                                 Button("Ver comprovante", id=f"link-comprovante-{i}", classes="ver-link"),
+                                 Button("Ver publicação", id=f"link-doi-{i}", classes="ver-link"),
+                                 id=f"links-{i}", classes="botoes links-item")]
+            if grupo["tipo"] == "lattes_sem_comprovante":
+                filhos.append(Horizontal(Button("Buscar data e tipo das publicações", id="completar-lattes"),
+                                         classes="botoes"))
+            filhos.append(Horizontal(*botoes, classes="botoes"))
+            if any(o["decisao"] == "justificar" for o in grupo["opcoes"]):
+                filhos.append(Horizontal(
+                    Input(placeholder="Justificativa, com as suas palavras (vai para Alterações de Atividades)",
+                          id=f"texto-{i}"),
+                    Button("Justificar", id=f"decidir-justificar-{i}", classes="decidir", variant="warning"),
+                    classes="justificar"))
+            widgets.append(Vertical(*filhos, classes="cartao"))
         if decididas:
             contagem = Counter(p.resolucao for p in decididas)
-            nomes = {"manter": "mantidas", "ignorar": "de fora", "remover_item": "removidas", "justificar": "justificadas"}
+            nomes = {"manter": "mantidas", "ignorar": "de fora", "remover_item": "tiradas do relato",
+                     "justificar": "justificadas"}
             resumo = " · ".join(f"{n} {nomes.get(k, k)}" for k, n in contagem.items())
             widgets.append(Static(f"Já decididas: {resumo}", classes="decididas"))
             if contagem.get("justificar"):
                 widgets.append(Horizontal(Button("Montar Alterações de Atividades", id="alteracoes"),
                                           classes="botoes"))
         await caixa.mount_all(widgets)
+        for i, grupo in enumerate(self._grupos):
+            if grupo["itens"]:
+                self._mostrar_item(i, grupo["itens"][0]["numero"])
 
-    @on(Button.Pressed, ".cartao Button")
+    def _mostrar_item(self, indice: int, numero: int) -> None:
+        item = self._itens.get(numero)
+        if not item:
+            return
+        texto = f"[b]{numero}.[/b] {item['resumo']}"
+        if item["sugestao"]:
+            texto += f"\n[b]Sugestão:[/b] {item['sugestao']}"
+        self.query_one(f"#detalhe-{indice}", Static).update(texto)
+        for tipo in ("suap", "comprovante", "doi"):
+            self.query_one(f"#link-{tipo}-{indice}", Button).display = tipo in item["links"]
+        self.query_one(f"#links-{indice}").display = any(t in item["links"] for t in ("suap", "comprovante", "doi"))
+        self._destacado = getattr(self, "_destacado", {})
+        self._destacado[indice] = numero
+
+    @on(SelectionList.SelectionHighlighted)
+    def _item_destacado(self, evento: SelectionList.SelectionHighlighted) -> None:
+        lista_id = evento.selection_list.id or ""
+        if lista_id.startswith("itens-"):
+            self._mostrar_item(int(lista_id.split("-")[1]), evento.selection.value)
+
+    @on(Button.Pressed, ".ver-link")
+    def _abrir_link(self, evento: Button.Pressed) -> None:
+        _, tipo, indice = evento.button.id.split("-")
+        numero = getattr(self, "_destacado", {}).get(int(indice))
+        url = self._itens.get(numero, {}).get("links", {}).get(tipo)
+        if url and links.permitido(url):
+            webbrowser.open(url)
+
+    @on(Button.Pressed, "#completar-lattes")
+    def _completar_lattes(self) -> None:
+        self.query_one("#completar-lattes", Button).disabled = True
+        humor(self, "trabalhando")
+        self.notify("Buscando as publicações em bases públicas (Crossref e OpenAlex)…")
+        self._completar_lattes_em_segundo_plano()
+
+    @work(thread=True, exclusive=True, group="lattes")
+    def _completar_lattes_em_segundo_plano(self) -> None:
+        from expeditto import explicacoes, publicacoes
+
+        manifest = acervo.carregar_manifest(self.semestre)
+        for p in manifest.pendencias:
+            explicacoes.completar_detalhes(p)
+        n = publicacoes.enriquecer([p for p in manifest.pendencias if not p.resolucao], manifest.semestre)
+        acervo.salvar_manifest(manifest)
+        self.app.call_from_thread(self._lattes_completado, n)
+
+    def _lattes_completado(self, n: int) -> None:
+        humor(self, "comemorando" if n else "ocioso")
+        self.notify(f"Encontrei dados de {n} publicação(ões)." if n else
+                    "Não encontrei essas publicações nas bases públicas (ou estou sem internet).")
+        self.atualizar()
+
+    @on(Button.Pressed, ".decidir")
     def _decidir(self, evento: Button.Pressed) -> None:
-        decisao, indice = evento.button.id.rsplit("-", 1)
+        _, decisao, indice = evento.button.id.split("-")
         i = int(indice)
         numeros = list(self.query_one(f"#itens-{i}", SelectionList).selected)
         if not numeros:
             self.notify("Marque ao menos um item.", severity="warning")
             return
-        justificativa = self.query_one(f"#texto-{i}", Input).value.strip() or None
+        campo = self.query(f"#texto-{i}")
+        justificativa = (campo.first(Input).value.strip() or None) if campo else None
         if decisao == "justificar" and not justificativa:
             self.notify("Escreva a justificativa antes.", severity="warning")
-            self.query_one(f"#texto-{i}", Input).focus()
+            campo.first(Input).focus()
             return
         manifest = acervo.carregar_manifest(self.semestre)
-        pendencias.resolver(manifest, numeros, decisao, justificativa)
+        pendencias.resolver(manifest, numeros, decisao, justificativa if decisao == "justificar" else None)
         self.notify(f"{len(numeros)} pendência(s) registrada(s).")
         self.atualizar()
 

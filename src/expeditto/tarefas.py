@@ -2,7 +2,7 @@
 
 Usado pelo MCP (o assistente mostra o andamento ao docente) e pela interface do terminal.
 As notificações de progresso do protocolo MCP não aparecem em todos os apps (ex.: Claude
-Code), então o progresso vai no próprio resultado das ferramentas `status_tarefa`/`aguardar_tarefa`.
+Code), então o progresso vai no próprio resultado das ferramenta `aguardar_tarefa`.
 """
 
 from __future__ import annotations

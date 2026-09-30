@@ -83,9 +83,10 @@ class HostJson(Host):
     """Apps configurados por um JSON com a chave `mcpServers` (Claude Desktop, Gemini, Antigravity)."""
 
     def __init__(self, id: str, nome: str, arquivo: Path, pasta_app: Path, executavel: str | None = None,
-                 extras: dict | None = None):
+                 extras: dict | None = None, extensoes: Path | None = None):
         super().__init__(id, nome)
         self.arquivo, self.pasta_app, self.executavel, self.extras = arquivo, pasta_app, executavel, extras or {}
+        self.extensoes = extensoes  # Gemini CLI: pasta de extensões (guia do Expeditto como contexto)
 
     def instalado(self) -> bool:
         return self.pasta_app.exists() or bool(self.executavel and shutil.which(self.executavel))
@@ -99,12 +100,20 @@ class HostJson(Host):
         comando, *args = comando_mcp()
         dados.setdefault("mcpServers", {})[NOME_SERVIDOR] = {"command": comando, "args": args, **self.extras}
         _gravar_json(self.arquivo, dados)
+        if self.extensoes:
+            from expeditto import conhecimento
+
+            conhecimento.instalar_extensao_gemini(self.extensoes)
         return f"adicionado em {self.arquivo}"
 
     def revisar(self) -> str:
         return self.configurar()
 
     def remover(self) -> str:
+        if self.extensoes:
+            from expeditto import conhecimento
+
+            conhecimento.remover_extensao_gemini(self.extensoes)
         dados = _ler_json(self.arquivo)
         if dados.get("mcpServers", {}).pop(NOME_SERVIDOR, None) is None:
             return "não estava configurado"
@@ -116,10 +125,10 @@ class HostCli(Host):
     """Apps configurados pela própria linha de comando (Claude Code, Codex)."""
 
     def __init__(self, id: str, nome: str, executavel: str, adicionar: list[str], remover: list[str],
-                 arquivo: Path, marcador: str, permissoes: Path | None = None):
+                 arquivo: Path, marcador: str, permissoes: Path | None = None, skills: Path | None = None):
         super().__init__(id, nome)
         self.executavel, self._adicionar, self._remover = executavel, adicionar, remover
-        self.arquivo, self.marcador, self.permissoes = arquivo, marcador, permissoes
+        self.arquivo, self.marcador, self.permissoes, self.skills = arquivo, marcador, permissoes, skills
 
     def instalado(self) -> bool:
         return shutil.which(self.executavel) is not None
@@ -136,17 +145,26 @@ class HostCli(Host):
 
     def configurar(self) -> str:
         resultado = self._rodar([*self._adicionar, "--", *comando_mcp()])
-        if self.permissoes:
-            permitir_no_claude_code(self.permissoes)
+        self._ajustes()
         return resultado
 
-    def revisar(self) -> str:
+    def _ajustes(self) -> None:
         if self.permissoes:
             permitir_no_claude_code(self.permissoes)
-            return "permissões atualizadas"
-        return "ok"
+        if self.skills:
+            from expeditto import conhecimento
+
+            conhecimento.instalar_skill(self.skills)
+
+    def revisar(self) -> str:
+        self._ajustes()
+        return "permissões e guia atualizados" if (self.permissoes or self.skills) else "ok"
 
     def remover(self) -> str:
+        if self.skills:
+            from expeditto import conhecimento
+
+            conhecimento.remover_skill(self.skills)
         if self.permissoes:
             permitir_no_claude_code(self.permissoes, remover=True)
         return self._rodar(self._remover)
@@ -176,13 +194,14 @@ def todos() -> list[Host]:
         HostJson("claude-desktop", "Claude Desktop", _config_claude_desktop(), _config_claude_desktop().parent),
         HostCli("claude-code", "Claude Code", "claude",
                 ["mcp", "add", NOME_SERVIDOR, "-s", "user"], ["mcp", "remove", NOME_SERVIDOR, "-s", "user"],
-                home / ".claude.json", r'"expeditto"\s*:', permissoes=home / ".claude" / "settings.json"),
+                home / ".claude.json", r'"expeditto"\s*:', permissoes=home / ".claude" / "settings.json",
+                skills=home / ".claude" / "skills"),
         HostCli("codex", "Codex (OpenAI)", "codex",
                 ["mcp", "add", NOME_SERVIDOR], ["mcp", "remove", NOME_SERVIDOR],
                 home / ".codex" / "config.toml", r"\[mcp_servers\.expeditto\]"),
         # trust: o Gemini CLI não pede confirmação a cada ferramenta (salvar_no_suap ainda exige confirmado=true)
         HostJson("gemini", "Gemini CLI", home / ".gemini" / "settings.json", home / ".gemini", "gemini",
-                 extras={"timeout": 600000, "trust": True}),
+                 extras={"timeout": 600000, "trust": True}, extensoes=home / ".gemini" / "extensions"),
         HostJson("antigravity", "Antigravity CLI", home / ".gemini" / "config" / "mcp_config.json",
                  home / ".gemini" / "config", "agy", extras={"timeout": 600000}),
     ]

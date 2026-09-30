@@ -119,8 +119,16 @@ def lacunas(manifest: Manifest, itens: list[ItemLattes], todas: list[Evidencia] 
             continue
         titulo = titulo_do_item(item.texto)
         resumo = titulo if len(titulo) <= 160 else titulo[:157].rsplit(" ", 1)[0] + "..."
+        from expeditto.publicacoes import extrair_doi
+
+        detalhes = {"titulo": titulo, "categoria": item.categoria, "ano": str(item.ano or ""),
+                    "topico": item.topico.value}
+        if doi := extrair_doi(item.texto):
+            detalhes["doi"] = doi
         pendencias.append(Pendencia(
             tipo="lattes_sem_comprovante",
+            detalhes=detalhes,
+            links={"doi": f"https://doi.org/{doi}"} if doi else {},
             mensagem=f"Lattes ({item.categoria}, {item.ano}): {resumo} — sem comprovante no acervo. Se for do "
                      f"semestre {manifest.semestre.codigo}, adicione o comprovante na pasta de entrada "
                      f"({item.topico.value}); caso contrário, ignore.",

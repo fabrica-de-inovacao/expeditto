@@ -11,42 +11,38 @@ import asyncio
 import re
 from collections import Counter
 
-from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver import Context, MCPServer
 from mcp.types import ToolAnnotations
 
 from expeditto import (acervo, anexos, atas, atualizacao, auth, coleta, config, diagnostico as diag, entrada,
-                       formulario,
-                       gmail, pendencias, roteiro, tarefas, textos)
+                       explicacoes, formulario, gmail, links, pendencias, publicacoes, roteiro, tarefas, textos)
+from expeditto import guia as guia_mod
 from expeditto.client import SessaoExpirada, SuapClient
 from expeditto.models import EstadoPlano, Topico
 from expeditto.suap import planos
 
 INSTRUCOES = """\
-Expeditto — assistente da burocracia docente ("seu segundo expediente, resolvido"). Hoje cuida do
-Relatório Individual de Trabalho (RIT) do SUAP IFMA. Roda na máquina do docente, com a sessão dele.
+Expeditto: assistente da burocracia docente ("seu segundo expediente, resolvido"). Prepara o RIT
+(Relatório Individual de Trabalho) do SUAP IFMA no computador do docente, com a sessão dele, e salva como
+rascunho. A entrega é sempre do docente.
 
-QUANDO USAR: sempre que o docente falar de RIT, "relatório individual de trabalho", relatório do
-semestre, PIT/plano individual de trabalho, comprovantes/declarações/portarias do SUAP, bancas,
-orientações ou projetos para o relatório. Não peça que ele digite comandos: use as ferramentas.
+QUANDO USAR: sempre que o docente falar de RIT, relatório do semestre, PIT, comprovantes, declarações,
+portarias, bancas, orientações, projetos ou Lattes para o relatório. Não peça que ele digite comandos.
 
-COMO CONDUZIR:
-1. Comece SEMPRE por `preparar_rit` (com o semestre, se ele disser qual). A resposta traz `etapa`,
-   `mensagem` (fale com o docente nesse tom), `trilha` (mostre-a) e `proximo` (a ferramenta a chamar).
-   Depois de cada passo concluído, chame `preparar_rit` de novo até a etapa "concluido".
-2. Tarefas longas (login, coleta) devolvem `tarefa_id`. Chame `aguardar_tarefa` em sequência e, a cada
-   resposta, MOSTRE ao docente a linha `progresso` (barra) e a linha `etapas`, sem enfeitar.
-3. Pendências: apresente um GRUPO por vez usando a `pergunta_sugerida` e registre a decisão com
-   `resolver_pendencia` (aceita vários números). NUNCA invente justificativas; use só o que o docente disser.
-4. Atas: se você tiver integração de e-mail (ex.: Gmail), busque atas/convocações de reuniões, NDE,
-   colegiado, comissões e bancas no período do semestre e chame `registrar_ata` para cada uma.
-   Sem integração de e-mail, use `buscar_atas_gmail` (backup do Expeditto), se estiver configurado.
-5. Relatos: para cada tópico, `contexto_topico` → redija (parágrafo + lista, só com os fatos e as
-   `contagens` fornecidas) → `salvar_texto`.
-6. Antes de salvar, mostre `previa_preenchimento` e peça confirmação explícita. Só então
-   `salvar_no_suap(confirmado=true)`. Ao final, mostre o `cartao` exatamente como veio.
-7. A ENTREGA (submeter para avaliação) é sempre do docente, no SUAP. Se algo falhar, use `diagnostico`.
-8. Se `preparar_rit` trouxer `atualizacao`, avise o docente UMA vez (versão nova disponível) e ofereça atualizar.
-   Só chame `atualizar_expeditto(confirmado=true)` se ele pedir.
+COMO CONDUZIR (detalhes: ferramenta `guia`, assuntos fluxo, pendencias, relatos, lattes, topicos, regras):
+1. Comece SEMPRE por `preparar_rit`. Siga `proximo`, fale no tom de `mensagem` e mostre a `trilha`.
+   Depois de cada etapa, chame `preparar_rit` de novo.
+2. Tarefas longas (login, coleta): chame `aguardar_tarefa` em sequência (cada chamada volta em ~10 s) e
+   mostre a linha `progresso` a cada resposta, com uma frase curta. Não fique em silêncio.
+3. Pendências: um grupo por vez. Explique com `o_que_e` e o `efeito` de cada opção, mostre os itens COM OS
+   LINKS e a `sugestao`. Dúvida sobre um item: `detalhar_pendencia`. Itens do Lattes sem data/tipo:
+   `completar_lattes`. Registre com `resolver_pendencia`. NUNCA invente justificativas.
+4. Sempre que citar algo do SUAP ou do acervo, inclua o link. Se o docente pedir para ver, `abrir_no_navegador`.
+5. Atas: com integração de e-mail, busque atas/convocações do período e chame `registrar_ata`.
+6. Relatos: `contexto_topico` -> redija (só fatos e as `contagens`) -> mostre -> `salvar_texto`.
+7. Antes de salvar, mostre `previa_preenchimento` e peça confirmação explícita; só então
+   `salvar_no_suap(confirmado=true)`. Mostre o `cartao` como veio.
+8. Se `preparar_rit` trouxer `atualizacao`, avise UMA vez e ofereça `atualizar_expeditto` (só se ele pedir).
 """
 
 servidor = MCPServer(name="expeditto", title="Expeditto", instructions=INSTRUCOES,
@@ -108,31 +104,42 @@ def preparar_rit(semestre: str | None = None, seguir_sem_decidir: bool = False) 
 
 
 @servidor.tool(annotations=LEITURA)
-async def aguardar_tarefa(tarefa_id: str, segundos: int = 45) -> dict:
-    """Espera uma tarefa em segundo plano avançar (até `segundos`, máx. 55) e devolve o progresso:
-    `progresso` (barra), `etapas` e `detalhe`. Mostre a barra ao docente a cada chamada."""
+async def aguardar_tarefa(tarefa_id: str, ctx: Context, segundos: int = 10) -> dict:
+    """Acompanha uma tarefa em segundo plano (login, coleta). Volta em até `segundos` (padrão 10, máx. 25) ou
+    antes, quando muda de etapa. Mostre a linha `progresso` ao docente a cada chamada e chame de novo."""
     tarefa = _tarefas.obter(tarefa_id)
     if not tarefa:
         return {"erro": f"tarefa {tarefa_id} não encontrada"}
-    limite = max(1, min(segundos, 55))
-    inicio_pct = tarefa.percentual
-    for _ in range(limite * 2):
+    limite = max(1, min(segundos, 25))
+    inicio_pct, inicio_etapa = tarefa.percentual, _etapa_atual(tarefa)
+    ultimo = None
+    for _ in range(limite * 4):
         if tarefa.estado != "executando":
             break
-        await asyncio.sleep(0.5)
-        if tarefa.percentual - inicio_pct >= 25:  # devolve cedo quando há avanço visível
+        if tarefa.percentual != ultimo:  # progresso nativo do protocolo (apps que exibem mostram a barra)
+            ultimo = tarefa.percentual
+            try:
+                await ctx.report_progress(tarefa.percentual, 100, tarefa.detalhe or tarefa.descricao)
+            except Exception:  # noqa: BLE001 - app sem suporte a progresso
+                pass
+        await asyncio.sleep(0.25)
+        if _etapa_atual(tarefa) != inicio_etapa or tarefa.percentual - inicio_pct >= 8:
             break
     visao = tarefa.visao()
+    resposta = {k: visao[k] for k in ("tarefa_id", "estado", "progresso", "detalhe") if k in visao}
+    resposta["etapas"] = visao["etapas"]
     if tarefa.estado == "concluida":
-        visao["proximo"] = {"ferramenta": "preparar_rit", "argumentos": {}}
-    return visao
+        resposta["resultado"] = visao.get("resultado")
+        resposta["proximo"] = {"ferramenta": "preparar_rit", "argumentos": {}}
+    elif tarefa.estado == "erro":
+        resposta["erro"] = visao.get("erro")
+    else:
+        resposta["proximo"] = {"ferramenta": "aguardar_tarefa", "argumentos": {"tarefa_id": tarefa_id}}
+    return resposta
 
 
-@servidor.tool(annotations=LEITURA)
-def status_tarefa(tarefa_id: str) -> dict:
-    """Progresso atual de uma tarefa, sem esperar (prefira `aguardar_tarefa`)."""
-    tarefa = _tarefas.obter(tarefa_id)
-    return tarefa.visao() if tarefa else {"erro": f"tarefa {tarefa_id} não encontrada"}
+def _etapa_atual(tarefa) -> str | None:
+    return next((e.id for e in tarefa.etapas if e.estado == "andamento"), None)
 
 
 @servidor.tool(annotations=LEITURA_SUAP)
@@ -143,19 +150,6 @@ def diagnostico(verificar_suap: bool = True) -> dict:
 
 
 # -- sessão e semestres ------------------------------------------------------------------------
-@servidor.tool(annotations=LEITURA_SUAP)
-def status_sessao() -> dict:
-    """Verifica se há sessão válida no SUAP e quem é o docente."""
-    try:
-        with _cliente() as client:
-            pagina = client.html("/edu/professor/?tab=planoatividades", aba=True)
-        from expeditto.suap.perfil import identificar
-        nome, matricula, _ = identificar(pagina)
-        return {"sessao": "ativa", "docente": nome, "matricula": matricula, "acervo": str(config.home())}
-    except (SessaoExpirada, ValueError):
-        return {"sessao": "ausente_ou_expirada", "acao": "chame `login` e peça ao docente para entrar no SUAP"}
-
-
 @servidor.tool(annotations=COLETA)
 def login() -> dict:
     """Abre uma janela do SUAP para o docente fazer login (CAPTCHA/Gov.br); ela fecha sozinha.
@@ -201,10 +195,10 @@ def coletar_semestre(semestre: str) -> dict:
 _LATTES = re.compile(r"Lattes \((?P<cat>[^,]+), (?P<ano>\d{4})\): (?P<tit>.+?) — sem comprovante")
 
 
-def _pendencia_resumida(n: int, p) -> dict:
-    if p.tipo == "lattes_sem_comprovante" and (m := _LATTES.search(p.mensagem)):
-        return {"numero": n, "tipo": p.tipo, "categoria": m["cat"], "titulo": m["tit"], "decisao": p.resolucao}
-    return {"numero": n, "tipo": p.tipo, "mensagem": p.mensagem, "decisao": p.resolucao}
+def _pendencia_resumida(manifest, n: int, p) -> dict:
+    explicacoes.completar_detalhes(p)
+    return {"numero": n, "tipo": p.tipo, "resumo": explicacoes.resumo_item(p), "decisao": p.resolucao,
+            "links": links.de_pendencia(manifest, p)}
 
 
 def _resumo(manifest) -> dict:
@@ -222,7 +216,7 @@ def _resumo(manifest) -> dict:
                               "Pergunte ao docente, por categoria, quais são deste semestre: com comprovante → "
                               "pasta de entrada + 'manter'; fora do semestre ou sem comprovante → 'ignorar'.")
         if lattes else None,
-        "pendencias": [_pendencia_resumida(n, p) for n, p in enumerate(manifest.pendencias, 1)],
+        "pendencias": [_pendencia_resumida(manifest, n, p) for n, p in enumerate(manifest.pendencias, 1)],
         "anexos": {k: {"documentos": a.documentos, "paginas": a.paginas, "mb": round(a.bytes / 1048576, 2)}
                    for k, a in manifest.anexos.items()},
         "textos_prontos": [t.value for t in Topico if textos.carregar(manifest.semestre.codigo, t.value)],
@@ -364,6 +358,70 @@ def salvar_no_suap(semestre: str, confirmado: bool = False) -> dict:
             "anexos_no_formulario": len(r.anexos_depois),
             "cartao": roteiro.cartao(_manifest(semestre), salvo or {"url": r.url, "url_pdf": r.url_relatorio_pdf}),
             "instrucao": "Mostre o `cartao` ao docente exatamente como veio."}
+
+
+# -- pendências explicadas, links e guia -----------------------------------------------------
+@servidor.tool(annotations=LEITURA)
+def detalhar_pendencia(semestre: str, numero: int) -> dict:
+    """Explica UMA pendência ao docente: o que é, por que importa, o efeito de cada opção, a sugestão e os
+    links para conferir (SUAP, comprovante, DOI). Use quando ele tiver dúvida sobre um item."""
+    manifest = _manifest(semestre)
+    if not 1 <= numero <= len(manifest.pendencias):
+        return {"erro": f"não há pendência nº {numero} (são {len(manifest.pendencias)})"}
+    p = explicacoes.completar_detalhes(manifest.pendencias[numero - 1])
+    exp = explicacoes.explicar(p.tipo)
+    lk = links.de_pendencia(manifest, p)
+    return {"numero": numero, "titulo": exp.titulo, "item": explicacoes.resumo_item(p),
+            "o_que_e": exp.o_que_e, "por_que_importa": exp.por_que_importa, "dica": exp.dica,
+            "sugestao": explicacoes.sugestao_item(p), "opcoes": explicacoes.opcoes(p.tipo),
+            "detalhes": p.detalhes, "links": lk, "links_markdown": links.markdown(lk),
+            "decisao_atual": p.resolucao, "texto_original": p.mensagem}
+
+
+@servidor.tool(annotations=COLETA)
+def completar_lattes(semestre: str) -> dict:
+    """Busca data, tipo (artigo, capítulo, anais...), veículo e DOI das publicações do Lattes pendentes em
+    bases públicas (Crossref, OpenAlex), para sugerir o semestre de cada uma. A coleta já faz isso; use em
+    coletas antigas ou quando os itens vierem sem data."""
+    manifest = _manifest(semestre)
+    for p in manifest.pendencias:
+        explicacoes.completar_detalhes(p)
+    completadas = publicacoes.enriquecer([p for p in manifest.pendencias if not p.resolucao], manifest.semestre)
+    acervo.salvar_manifest(manifest)
+    grupo = next((g for g in roteiro.pendencias_agrupadas(manifest) if g["tipo"] == "lattes_sem_comprovante"), None)
+    return {"completadas": completadas, "grupo_lattes": grupo}
+
+
+@servidor.tool(annotations=ESCRITA_LOCAL)
+def abrir_no_navegador(url: str) -> dict:
+    """Abre no navegador do docente um link do SUAP, um PDF do acervo (file://) ou um DOI. Só esses: use os
+    links que vieram nos resultados (`links`) quando o docente pedir para ver algo."""
+    if not links.permitido(url):
+        return {"aberto": False, "motivo": "Só abro links do SUAP, do acervo do docente ou de DOI."}
+    import webbrowser
+
+    return {"aberto": webbrowser.open(url)}
+
+
+@servidor.tool(annotations=LEITURA)
+def guia(assunto: str = "indice") -> str:
+    """Guia do Expeditto para você (assistente): fluxo, topicos, pendencias, relatos, lattes, regras.
+    Leia `fluxo` no começo de uma conversa sobre o RIT e o assunto específico quando precisar."""
+    return guia_mod.ler(assunto)
+
+
+def _registrar_recursos_do_guia() -> None:
+    def leitor(assunto: str):
+        def ler() -> str:
+            return guia_mod.ler(assunto)
+        return ler
+
+    for assunto in guia_mod.ASSUNTOS:
+        servidor.resource(f"expeditto://guia/{assunto}", name=f"guia-{assunto}", mime_type="text/markdown",
+                          description=f"Guia do Expeditto: {assunto}")(leitor(assunto))
+
+
+_registrar_recursos_do_guia()
 
 
 # -- versão -------------------------------------------------------------------------------------

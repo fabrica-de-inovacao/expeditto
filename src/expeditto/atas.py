@@ -99,5 +99,6 @@ def aplicar(manifest: Manifest) -> None:
             nome = f" ('{ata['anexo_nome']}')" if ata.get("anexo_nome") else ""
             manifest.pendencias.append(Pendencia(
                 tipo="ata_sem_anexo", evidencia_id=ev.id,
+                detalhes={"titulo": ata["assunto"], "periodo": ev.data_evento.strftime("%d/%m/%Y") if ev.data_evento else ""},
                 mensagem=f"Ata '{ata['assunto']}' registrada pelo corpo do e-mail; o PDF original{nome} "
                          f"não veio. Baixe-o e coloque na pasta de entrada, se houver versão assinada."))
