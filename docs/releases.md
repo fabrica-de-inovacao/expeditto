@@ -18,7 +18,7 @@
 - **Chat (MCP):** `preparar_rit` traz o campo `atualizacao`; o assistente avisa uma vez e, se o docente pedir,
   chama `atualizar_expeditto(confirmado=true)`. Também há `verificar_atualizacao`.
 
-A consulta à última release fica em cache por um dia (`~/expeditto/.atualizacao.json`), leva no máximo 2,5 s e,
+A consulta à última release fica em cache por uma hora, só para a versão que a gravou (`~/expeditto/.atualizacao.json`), leva no máximo 2,5 s e,
 sem internet, simplesmente não gera aviso. Para desligar: `EXPEDITTO_SEM_ATUALIZACAO=1`.
 
 ## Como a atualização roda
