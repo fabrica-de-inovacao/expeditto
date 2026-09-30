@@ -137,7 +137,7 @@ def test_funcao_atual_desde():
         [["FUNCAO COMISSIONADA DE COORD. CURSO", "0001", "2066 - COORDENADOR(A) DE CURSOS", "DEPX-XYZ",
           "Desde 05/04/2023"]]) + "</body></html>"
     [ev] = servidor.parse_funcoes(pagina)
-    assert ev.titulo == "COORDENADOR(A) DE CURSOS"
+    assert ev.titulo == "Coordenador(a) de cursos"
     assert ev.inicio == date(2023, 4, 5) and ev.fim is None
 
 

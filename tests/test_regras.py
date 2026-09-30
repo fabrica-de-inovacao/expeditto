@@ -241,3 +241,21 @@ def test_ata_classificada_pelo_assunto_e_departamento_nao_pelo_corpo():
                    descricao="E-mail do Departamento de Pesquisa, Pós-Graduação, Inovação e Extensão",
                    extras={"texto": "Prezados coordenadores e bolsistas..."})
     assert classificar(ev).topicos == [Topico.PESQUISA]
+
+
+@pytest.mark.parametrize("bruto,padrao", [
+    ("Coordenadora", "Coordenador(a)"),
+    ("Coordenador (a)", "Coordenador(a)"),
+    ("COORDENADOR(A) DE CURSOS", "Coordenador(a) de cursos"),
+    ("Subcoordenador(a)", "Subcoordenador(a)"),
+    ("Coordenador de Projeto", "Coordenador(a) de projeto"),
+    ("Presidente", "Presidente"),
+    ("Membro", "Membro"),
+    ("  ", None),
+])
+def test_papel_padronizado(bruto, padrao):
+    from suap_rit.models import normalizar_papel
+
+    assert normalizar_papel(bruto) == padrao
+    ev = Evidencia(id="x", fonte="t", tipo=TipoEvidencia.PORTARIA, titulo="P", papel=bruto)
+    assert ev.papel == padrao

@@ -117,3 +117,13 @@ def test_lacuna_ignora_item_ja_registrado_em_outro_semestre():
     m = Manifest(semestre=Semestre(ano=2025, periodo=2), gerado_em=datetime.now())
     de_2025_1 = Evidencia(id="b", fonte="t", tipo=TipoEvidencia.BANCA, titulo="Sistema de gestão de chamados web")
     assert lattes.lacunas(m, itens) and not lattes.lacunas(m, itens, [de_2025_1])
+
+
+@pytest.mark.parametrize("bruto,limpo", [
+    ("Contos em jogo: a criação de Grandma?s Tales (País: Brasil)",
+     "Contos em jogo: a criação de Grandma's Tales"),
+    ("ESTUDO DO APLICATIVO ¿EXEMPLÂNDIA¿ EM SALA DE AULA", "ESTUDO DO APLICATIVO “EXEMPLÂNDIA” EM SALA DE AULA"),
+    ("Por que agora? Um estudo", "Por que agora? Um estudo"),
+])
+def test_limpar_titulo_lattes(bruto, limpo):
+    assert lattes.limpar_titulo(bruto) == limpo

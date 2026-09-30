@@ -164,3 +164,11 @@ Fontes: [conector Gmail do Claude](https://claude.com/connectors/gmail), [Worksp
 | D54 | Login com **perfil persistente** do navegador (D45). | `~/suap-rit/_navegador`; `suap-rit logout` apaga sessão e perfil. |
 
 Observação: o rascunho salvo no SUAP em 2025.1 (teste da I2) foi gerado **antes** da D52 e inclui projetos de julho/agosto. Refazer `montar` → textos → `salvar_no_suap` após a revisão da docente.
+
+## 15. Ajustes após o teste MCP de 2025.2 (2026-09-30)
+
+| # | Decisão | Regra |
+|---|---|---|
+| D55 | **Papel padronizado** em toda evidência (validador do modelo). | Forma neutra "X(a)" (o perfil não guarda sexo, D26), sem espaço em "(a)", só a inicial maiúscula: "Coordenadora"/"Coordenador (a)"/"COORDENADOR(A) DE CURSOS" → "Coordenador(a)" / "Coordenador(a) de cursos". |
+| D56 | **Títulos do Lattes limpos.** | Sem "(País: …)"; `?` entre letras → apóstrofo; `¿…¿` → aspas (caracteres perdidos na importação do Lattes pelo SUAP). |
+| D57 | Correções do teste MCP (commit `c530b39`). | Lacunas do Lattes comparadas com todas as evidências; títulos de banca/evento; atas por assunto+departamento; papel "atuar como X"; diários sem contagem da API; `contagens` no contexto; pendências do Lattes agrupadas. |

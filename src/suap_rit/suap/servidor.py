@@ -16,7 +16,7 @@ from pypdf import PdfReader
 from suap_rit import html as h
 from suap_rit.acervo import Cache
 from suap_rit.client import SuapClient
-from suap_rit.models import Evidencia, Perfil, TipoEvidencia
+from suap_rit.models import Evidencia, Perfil, TipoEvidencia, normalizar_papel
 from suap_rit.suap import portaria
 
 _FONTE = "suap_servidor"
@@ -260,7 +260,7 @@ def parse_funcoes(pagina: str) -> list[Evidencia]:
                 id=f"{_FONTE}:funcao:{_hash(atividade, str(inicio))}",
                 fonte=_FONTE,
                 tipo=TipoEvidencia.FUNCAO,
-                titulo=re.sub(r"^\d+\s*-\s*", "", atividade),
+                titulo=normalizar_papel(re.sub(r"^\d+\s*-\s*", "", atividade)) or atividade,
                 descricao=f"{reg['Função'].texto} — {setor}".strip(" —"),
                 papel=re.sub(r"^\d+\s*-\s*", "", atividade),
                 inicio=inicio,

@@ -70,6 +70,15 @@ def parse(pagina: str) -> list[ItemLattes]:
     return itens
 
 
+def limpar_titulo(titulo: str) -> str:
+    """Remove '(País: Brasil)' e corrige caracteres perdidos na importação do Lattes pelo SUAP:
+    aspas curvas viram '?' (Grandma?s) ou '¿' (¿EXEMPLÂNDIA¿)."""
+    titulo = re.sub(r"\s*\(Pa[íi]s:\s*[^)]*\)\s*", " ", titulo)
+    titulo = re.sub(r"(?<=[A-Za-zÀ-ú])\?(?=[A-Za-zÀ-ú])", "'", titulo)
+    titulo = re.sub(r"¿([^¿]+)¿", lambda m: f"“{m[1]}”", titulo).replace("¿", "'")
+    return re.sub(r"\s+", " ", titulo).strip()
+
+
 def titulo_do_item(texto: str) -> str:
     """Remove a lista de autores das citações ("SOBRENOME, Nome ; ... . Título. Local, ano").
     Orientações vêm como "Aluno. Título. Início: ..." → fica o título."""
@@ -82,8 +91,8 @@ def titulo_do_item(texto: str) -> str:
     elif re.search(r"In[íi]cio:|Orienta", texto) and ". " in texto:
         resto = texto.split(". ", 1)[1]
     else:
-        return texto  # formato desconhecido: mantém a citação inteira
-    return resto.split(". ")[0].strip() or texto
+        return limpar_titulo(texto)  # formato desconhecido: mantém a citação inteira
+    return limpar_titulo(resto.split(". ")[0].strip() or texto)
 
 
 def _tokens(texto: str) -> set[str]:

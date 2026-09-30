@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Topico(StrEnum):
@@ -126,6 +127,36 @@ class Evidencia(BaseModel):
     url_comprovante: str | None = None
     comprovante_assincrono: bool = False
     extras: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("papel")
+    @classmethod
+    def _papel_padronizado(cls, valor: str | None) -> str | None:
+        return normalizar_papel(valor)
+
+
+# Formas flexionadas → forma neutra "X(a)" (o perfil não guarda sexo, D26).
+_NEUTRO = {
+    "coordenadora": "coordenador(a)", "subcoordenadora": "subcoordenador(a)",
+    "vice-coordenadora": "vice-coordenador(a)", "orientadora": "orientador(a)",
+    "coorientadora": "coorientador(a)", "professora": "professor(a)", "supervisora": "supervisor(a)",
+    "avaliadora": "avaliador(a)", "examinadora": "examinador(a)", "diretora": "diretor(a)",
+    "secretária": "secretário(a)", "secretario": "secretário(a)", "secretário": "secretário(a)",
+    "coordenador": "coordenador(a)", "subcoordenador": "subcoordenador(a)", "orientador": "orientador(a)",
+    "coorientador": "coorientador(a)", "professor": "professor(a)", "supervisor": "supervisor(a)",
+    "avaliador": "avaliador(a)", "examinador": "examinador(a)", "diretor": "diretor(a)",
+}
+
+
+def normalizar_papel(valor: str | None) -> str | None:
+    """'COORDENADOR(A) DE CURSOS', 'Coordenador (a)', 'Coordenadora' → 'Coordenador(a) de cursos' /
+    'Coordenador(a)'. Uma só forma para o mesmo papel em todos os tópicos."""
+    if not valor or not valor.strip():
+        return None
+    texto = re.sub(r"\s+", " ", valor.strip())
+    texto = re.sub(r"\s*\(\s*a\s*\)", "(a)", texto, flags=re.I).lower()
+    palavras = [_NEUTRO.get(p, p) if not p.endswith("(a)") else p for p in texto.split(" ")]
+    texto = " ".join(palavras)
+    return texto[0].upper() + texto[1:]
 
 
 class Pendencia(BaseModel):
