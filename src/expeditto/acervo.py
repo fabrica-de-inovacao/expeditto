@@ -57,6 +57,15 @@ def pasta_semestre(codigo: str) -> Path:
     return pasta
 
 
+def semestres_locais() -> list[str]:
+    """Semestres (AAAA.P) com acervo coletado nesta máquina, do mais recente ao mais antigo."""
+    raiz = config.home()
+    if not raiz.exists():
+        return []
+    return sorted((p.name for p in raiz.iterdir() if re.fullmatch(r"\d{4}\.[12]", p.name)
+                   and (p / "manifest.json").exists()), reverse=True)
+
+
 def salvar_manifest(manifest: Manifest) -> Path:
     destino = pasta_semestre(manifest.semestre.codigo) / "manifest.json"
     destino.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")

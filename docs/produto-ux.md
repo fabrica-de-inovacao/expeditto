@@ -6,6 +6,8 @@
 > - Hospedagem: VPS com **Coolify 4.3.23**, projeto **Expeditto** com os recursos na rede do próprio Coolify; domínio **expeditto.fabitz.com.br** (DNS já resolve para a VPS). Primeiro recurso: site estático com `install.ps1`/`install.sh`; depois página de apresentação e tutoriais.
 > - App OAuth do Gmail: **adiado**. E-mail pelo conector do host (Claude); backup próprio quando houver demanda.
 > - TUI deve ocupar a janela inteira do terminal (Textual em tela cheia, layout responsivo).
+> - **Fase 4 feita**: `expeditto instalar` (assistente em 5 passos: navegador, pasta, apps de IA, login, diagnóstico; `--sim`, `--apps`, `--sem-login`), `desinstalar` (desconecta os apps; dados só com `--apagar-dados`) e `atualizar` (`uv tool upgrade --reinstall-package`). Scripts `site/install.ps1` e `site/install.sh` (instalam o uv e o Expeditto do .zip da `main` até a publicação no PyPI) e página em `site/` para o Coolify (`docs/deploy-coolify.md`).
+> - **Fase 3 feita** (`src/expeditto/tui/`): `expeditto` sem argumentos abre Início → Preparar RIT (abas Coleta, Pendências, Anexos, Relatos, Salvar) e Diagnóstico; login em janela sobreposta. Mascote com poses animadas (ocioso/piscando, acenando, trabalhando, comemorando, preocupado). Salvar exige dois cliques e nunca entrega. Tema "noite de expediente" e `--alto-contraste`; em terminais estreitos (<100 col.) ou baixos (<38 lin.) o mascote some. `expeditto doctor` na CLI.
 >
 > 2026-09-30. Proposta para debate. Nome **provisório**: Expedito (ver §1). Licença: **AGPL-3.0**.
 > Premissas: distribuição **pública** e gerenciada por nós; CLI + MCP no mesmo pacote; e-mail pelo conector do Claude, com backup próprio para outros apps.

@@ -11,8 +11,78 @@ from expeditto.client import SessaoExpirada, SuapClient
 from expeditto.models import Perfil, Topico
 from expeditto.suap import planos
 
-app = typer.Typer(help="Expeditto · seu segundo expediente, resolvido. Prepara o RIT do SUAP IFMA a partir dos seus comprovantes.",
-                  no_args_is_help=True)
+app = typer.Typer(help="Expeditto · seu segundo expediente, resolvido. Prepara o RIT do SUAP IFMA a partir dos seus "
+                       "comprovantes. Sem comando, abre a interface visual.",
+                  invoke_without_command=True)
+
+
+@app.callback()
+def inicio(ctx: typer.Context,
+           alto_contraste: bool = typer.Option(False, "--alto-contraste", help="Cores de alto contraste."),
+           semestre: str = typer.Option(None, "--semestre", help="Abre direto no RIT deste semestre (AAAA.P)."),
+           sem_tui: bool = typer.Option(False, "--sem-tui", help="Só mostra a ajuda, sem a interface visual.")) -> None:
+    if ctx.invoked_subcommand is not None:
+        return
+    import sys
+
+    if sem_tui or not sys.stdout.isatty():
+        typer.echo(ctx.get_help())
+        return
+    from expeditto.tui.app import rodar
+
+    rodar(alto_contraste=alto_contraste, semestre=semestre)
+
+
+@app.command()
+def instalar(sim: bool = typer.Option(False, "--sim", help="Aceita tudo sem perguntar (apps detectados, login)."),
+             apps: str = typer.Option(None, help="Só estes apps, ex.: claude-desktop,claude-code."),
+             sem_login: bool = typer.Option(False, "--sem-login", help="Pula o login no SUAP.")) -> None:
+    """Prepara tudo: navegador, pasta de dados, conexão com os apps de IA, login no SUAP e diagnóstico."""
+    from expeditto import assistente
+
+    escolhidos = [a.strip() for a in apps.split(",")] if apps else None
+    raise typer.Exit(assistente.instalar(automatico=sim, apps_escolhidos=escolhidos, com_login=not sem_login))
+
+
+@app.command()
+def desinstalar(apagar_dados: bool = typer.Option(None, "--apagar-dados/--manter-dados",
+                                                  help="Apaga também o acervo e a sessão (pergunta se omitido)."),
+                sim: bool = typer.Option(False, "--sim", help="Não perguntar (mantém os dados, salvo --apagar-dados).")) -> None:
+    """Remove o Expeditto dos apps de IA e, se você pedir, apaga seus dados."""
+    from expeditto import assistente
+
+    raise typer.Exit(assistente.desinstalar(apagar=apagar_dados, automatico=sim))
+
+
+@app.command()
+def atualizar() -> None:
+    """Atualiza o Expeditto para a versão mais recente."""
+    from expeditto import assistente
+
+    raise typer.Exit(assistente.atualizar())
+
+
+@app.command()
+def doctor(json_: bool = typer.Option(False, "--json", help="Saída em JSON."),
+           offline: bool = typer.Option(False, "--offline", help="Não consulta o SUAP.")) -> None:
+    """Diagnóstico: o que está pronto, o que falta e como resolver."""
+    import json
+
+    from expeditto import diagnostico
+
+    verificacoes = diagnostico.executar(verificar_online=not offline)
+    if json_:
+        typer.echo(json.dumps(diagnostico.como_dict(verificacoes), ensure_ascii=False, indent=2))
+        return
+    cores = {"ok": ("✓", "green"), "aviso": ("!", "yellow"), "erro": ("✗", "red")}
+    for v in verificacoes:
+        icone, cor = cores[v.estado]
+        typer.secho(f" {icone} ", fg=cor, bold=True, nl=False)
+        typer.echo(f"{v.titulo:<28}{v.detalhe}")
+        if v.como_resolver:
+            typer.secho(f"{'':31}↳ {v.como_resolver}", fg="yellow")
+    geral = diagnostico.como_dict(verificacoes)["geral"]
+    raise typer.Exit(1 if geral == "erro" else 0)
 
 
 def _cliente() -> tuple[SuapClient, Perfil | None]:
