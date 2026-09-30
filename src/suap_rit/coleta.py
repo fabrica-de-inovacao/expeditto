@@ -303,6 +303,10 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
         itens=itens,
         pendencias=pendencias,
     )
+    from suap_rit import atas, pendencias as decisoes  # import tardio: evita ciclo com textos
+
+    atas.aplicar(manifest)  # atas registradas pelo host (e-mail) sobrevivem a novas coletas
+    decisoes.aplicar(manifest)  # decisões já tomadas pelo docente não são perguntadas de novo
     acervo.salvar_manifest(manifest)
     return manifest
 

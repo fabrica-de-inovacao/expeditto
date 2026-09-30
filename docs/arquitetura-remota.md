@@ -1,4 +1,6 @@
-# Arquitetura remota (VPS, multiusuário) — proposta
+# Arquitetura remota (VPS, multiusuário) — investigação ARQUIVADA
+
+> **Status: arquivado em 2026-09-29 (D46).** Foi um estudo de viabilidade; o produto segue **local**. Fica como referência se um dia houver versão institucional.
 
 > 2026-09-29. Motivação: o MCP deve rodar numa VPS, ser acionado remotamente e atender vários docentes.
 > Isso também resolve a portabilidade (D44): Claude, ChatGPT e Gemini falam com **MCP remoto** (streamable HTTP + OAuth 2.1).

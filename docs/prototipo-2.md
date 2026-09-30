@@ -119,9 +119,9 @@ Resources: `rit://{semestre}/manifest`, `rit://{semestre}/{topico}/texto`, `rit:
 | E2 anexos | ✅ capa + índice + marcadores + compressão; 7 anexos de 2025.1 (0,09–2,76 MB) | `anexos.py`, `suap-rit montar` |
 | E3 textos | ✅ rascunho determinístico + `contexto_topico` para o LLM do host | `textos.py`, `suap-rit textos` |
 | E5 salvar | ✅ prévia + Salvar com conferência; testado no SUAP real (2025.1) | `formulario.py`, `suap-rit preencher [--salvar]` |
-| E4 alterações | ⏳ próximo | — |
-| E1 servidor MCP | ⏳ próximo | — |
-| E6 atas (registrar_ata + backup OAuth) | ⏳ | — |
+| E4 alterações | ✅ decisões do docente persistidas + texto de Alterações só com justificativas dele | `pendencias.py` |
+| E1 servidor MCP | ✅ 15 ferramentas, stdio, tarefas em segundo plano; testado via cliente MCP | `mcp_server.py`, `suap-rit mcp`, `docs/integracao-hosts.md` |
+| E6 atas | ✅ `registrar_ata` (host) · ⏳ backup OAuth na CLI (D42) | `atas.py` |
 | E7 Lattes / E8 entrada manual | ⏳ | — |
 
 Observação: o RIT 2025.1 de teste ficou **salvo como rascunho** com os textos gerados por template. A docente deve revisar (ou pedir nova versão pelo MCP) antes de entregar.

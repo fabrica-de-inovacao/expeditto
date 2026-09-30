@@ -66,6 +66,12 @@ def classificar(ev: Evidencia) -> Classificacao:
         if ev.extras.get("tipo_projeto") == TipoEvidencia.PROJETO_PESQUISA.value:
             return Classificacao([T.ORIENTACAO_ALUNOS, T.PESQUISA], "orientação de bolsista em pesquisa (P1)")
         return Classificacao([T.ORIENTACAO_ALUNOS], "orientação de discente em projeto (D12)")
+    if ev.tipo == TipoEvidencia.ATA:
+        alvo = f"{ev.titulo} {ev.extras.get('texto', '')}".lower()
+        for padrao, topicos, motivo in _REGRAS_PORTARIA:
+            if re.search(padrao, alvo):
+                return Classificacao(list(topicos), f"ata por e-mail: {motivo}")
+        return Classificacao([T.REUNIOES], "ata de reunião por e-mail (D15)")
     if ev.tipo != TipoEvidencia.PORTARIA:
         topicos, motivo = _POR_TIPO[ev.tipo]
         return Classificacao(list(topicos), motivo)

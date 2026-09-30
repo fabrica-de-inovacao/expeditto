@@ -106,6 +106,7 @@ class TipoEvidencia(StrEnum):
     FUNCAO = "funcao"
     AFASTAMENTO = "afastamento"
     CAPACITACAO = "capacitacao"
+    ATA = "ata"  # ata/convocação recebida por e-mail (registrar_ata, D41)
 
 
 class Evidencia(BaseModel):
@@ -130,6 +131,14 @@ class Pendencia(BaseModel):
     tipo: str
     mensagem: str
     evidencia_id: str | None = None
+    # decisão do docente: "manter" | "remover_item" | "justificar" | "ignorar"
+    resolucao: str | None = None
+    justificativa: str | None = None
+
+    @property
+    def chave(self) -> str:
+        """Identidade estável entre coletas (para reaplicar a decisão do docente)."""
+        return f"{self.tipo}:{self.evidencia_id or self.mensagem}"
 
 
 class ItemAcervo(BaseModel):

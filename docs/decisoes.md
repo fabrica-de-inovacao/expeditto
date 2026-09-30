@@ -143,3 +143,11 @@ Validação (2025.1): Preparação passou a ter 6/6 itens comprovados. Dois diá
 | D45 | **Login do SUAP continua via web** (janela efêmera, D38). OAuth do SUAP ("Minhas Aplicações") não serve: o token só vale para a API REST, não para as páginas web e o formulário do RIT. | Melhoria: perfil persistente do navegador (menos CAPTCHA/Gov.br). Futuro multi-docente: extensão de navegador. |
 
 Fontes: [conector Gmail do Claude](https://claude.com/connectors/gmail), [Workspace connectors](https://support.claude.com/en/articles/10166901-use-google-workspace-connectors), [limites de anexos](https://www.fyxer.com/blog/claude-gmail-integration); [ChatGPT developer mode/MCP](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt), [sem stdio no ChatGPT](https://peliqan.io/blog/chatgpt-mcp/); [Gemini Spark](https://techcrunch.com/2026/05/19/google-introduces-gemini-spark-a-24-7-agentic-assistant-with-gmail-integration/); [modo Testing do OAuth Google](https://www.unipile.com/google-oauth-refresh-token/); [device flow sem Gmail](https://developers.google.com/identity/protocols/oauth2/limited-input-device?authuser=6); [escopos restritos/CASA](https://developer.nylas.com/docs/cookbook/use-cases/build/fix-google-access-denied/).
+
+## 13. Execução local e hosts suportados (2026-09-29)
+
+| # | Decisão | Regra |
+|---|---|---|
+| D46 | **Uso local por ora.** A arquitetura remota (VPS, multiusuário) foi só investigação e está arquivada em `arquitetura-remota.md`. | Servidor MCP roda na máquina do docente (stdio). Sessão SUAP, acervo e tokens ficam só nela (D26, D45). |
+| D47 | **Hosts desktop suportados** (todos via MCP stdio, mesmo comando `suap-rit mcp`): **Claude Desktop**, **Claude Code**, **OpenAI Codex** (CLI, IDE e app desktop, `~/.codex/config.toml`), **Gemini CLI / Antigravity CLI** (`~/.gemini/settings.json` ou `mcp_config.json`). | O chat web do ChatGPT e o Gemini Spark só aceitam MCP remoto → fora do escopo (D44). Guia de configuração: `docs/integracao-hosts.md`. |
+| D48 | E-mail no host que tiver conector; se o host não tiver (ex.: CLIs), usa o backup OAuth da CLI (D42) ou a pasta de entrada (D11). | `registrar_ata` é igual para todos os hosts. |

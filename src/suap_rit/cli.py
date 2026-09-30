@@ -170,6 +170,14 @@ def preencher(semestre: str,
 
 
 @app.command()
+def mcp() -> None:
+    """Inicia o servidor MCP (stdio) para Claude Desktop/Code, Codex ou Gemini/Antigravity CLI."""
+    from suap_rit.mcp_server import main as servir
+
+    servir()
+
+
+@app.command()
 def logout() -> None:
     """Apaga a sessão guardada no keyring."""
     auth.apagar_sessao()
