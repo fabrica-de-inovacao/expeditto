@@ -15,7 +15,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from expeditto import acervo
+from expeditto import acervo, links
 from expeditto.anexos import _periodo, documentos_do_topico
 from expeditto.coleta import CATEGORIAS_PIT
 from expeditto.models import Manifest, TipoEvidencia, Topico
@@ -68,6 +68,7 @@ def contexto_topico(manifest: Manifest, topico: Topico) -> dict:
             "comprovante_no_anexo": ref_por_arquivo.get(str(Path(arquivo))) if arquivo else None,
             "motivo_classificacao": item.motivo,
             "comprovado_por": ev.extras.get("comprovada_por"),
+            "links": links.de_evidencia(ev, item),
         })
     # função comprovada por portaria de designação: aponta o documento da portaria
     doc_por_evidencia = {it["id"]: it["comprovante_no_anexo"] for it in itens if it.get("id")}
@@ -87,7 +88,7 @@ def contexto_topico(manifest: Manifest, topico: Topico) -> dict:
                        "lista dos itens (título, papel, período e 'Doc. N do anexo'). Use apenas os fatos "
                        "fornecidos; não invente atividades, números ou resultados. Para quantidades, use "
                        "EXATAMENTE os números de 'contagens' (não conte você mesmo). HTML simples: <p>, <ul>, "
-                       "<li>, <strong>."),
+                       "<li>, <strong>. Ao mostrar itens ao docente no chat, inclua os links (Ver no SUAP / comprovante)."),
     }
 
 

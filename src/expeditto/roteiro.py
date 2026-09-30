@@ -11,8 +11,8 @@ from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 
-from expeditto import acervo, auth, textos
-from expeditto.models import Manifest, Topico
+from expeditto import acervo, auth, explicacoes, links, textos
+from expeditto.models import Manifest, Pendencia, Topico
 
 ETAPAS = ["login", "escolher_semestre", "coletar", "pendencias", "anexos", "relatos", "alteracoes",
           "previa", "concluido"]
@@ -38,47 +38,49 @@ class Passo:
 
 
 # -- pendências agrupadas -------------------------------------------------------------------
-_PERGUNTAS = {
-    "lattes_sem_comprovante": "Achei {n} itens do seu Lattes de {ano} sem comprovante no SUAP ({detalhe}). Quais "
-                              "são deste semestre? Para esses, coloque o comprovante na pasta de entrada; os "
-                              "outros eu deixo de fora.",
-    "diario_incompleto": "{n} diário(s) com o registro de aulas incompleto no SUAP ({detalhe}). Você vai completar "
-                         "o registro ou prefere justificar em 'Alterações de Atividades'?",
-    "sem_comprovante": "{n} atividade(s) sem comprovante no SUAP ({detalhe}). Mantenho no relato, removo ou você "
-                       "quer justificar?",
-    "ata_sem_anexo": "Registrei {n} ata(s) a partir do e-mail, sem o PDF original ({detalhe}). Você tem a versão "
-                     "assinada para colocar na pasta de entrada?",
-    "datas": "{n} portaria(s) sem vigência no texto; usei a data da portaria ({detalhe}). Pode ser assim?",
-    "afastamento": "{n} afastamento(s) longo(s) no semestre ({detalhe}). Quer mencionar em 'Alterações de Atividades'?",
-    "divergencia_pit": "O PIT previa atividades sem comprovante no semestre ({detalhe}). Declaro em 'Alterações de "
-                       "Atividades'? (preciso da sua justificativa)",
-    "entrada_sem_topico": "{n} arquivo(s) na pasta de entrada sem tópico ({detalhe}). Em qual tópico entram?",
-}
+def _distribuicao_lattes(itens: list[Pendencia], codigo: str) -> str:
+    deste = sum(1 for p in itens if p.detalhes.get("semestre_provavel") == codigo)
+    outro = sum(1 for p in itens if p.detalhes.get("semestre_provavel") not in (None, codigo))
+    sem = len(itens) - deste - outro
+    partes = [f"{deste} parece(m) ser deste semestre" if deste else "",
+              f"{outro} parece(m) ser de outro semestre" if outro else "",
+              f"{sem} sem data" if sem and (deste or outro) else ""]
+    partes = [x for x in partes if x]
+    return ("Pelas datas das publicações: " + ", ".join(partes) + ".") if partes else ""
 
 
-def _resumo_pendencia(p) -> str:
-    if p.tipo == "lattes_sem_comprovante" and ": " in p.mensagem:
-        return p.mensagem.split(": ", 1)[1].split(" — ")[0]
-    return p.mensagem.split(". ")[0][:140]
+def _pergunta(tipo: str, itens: list[Pendencia], manifest: Manifest) -> str:
+    exp = explicacoes.explicar(tipo)
+    n = len(itens)
+    if tipo == "lattes_sem_comprovante":
+        cats = Counter(p.detalhes.get("categoria") or "item" for p in itens)
+        detalhe = ", ".join(f"{v} {k}" for k, v in cats.most_common())
+        base = (f"Achei {n} item(ns) do seu Lattes de {manifest.semestre.ano} sem comprovante no SUAP ({detalhe}). "
+                f"{_distribuicao_lattes(itens, manifest.semestre.codigo)}").strip()
+        return base + " Quais são deste semestre? Para esses, coloque o comprovante na pasta de entrada; "                       "os outros ficam de fora."
+    opcoes = " / ".join(o["rotulo"] for o in explicacoes.opcoes(tipo))
+    return f"{exp.titulo}: {n} item(ns). O que prefere para eles: {opcoes}?"
 
 
 def pendencias_agrupadas(manifest: Manifest) -> list[dict]:
-    abertas = [(n, p) for n, p in enumerate(manifest.pendencias, 1) if not p.resolucao]
+    """Pendências em aberto por tipo, com explicação, opções (e o efeito de cada uma) e, por item:
+    resumo, sugestão e links para conferir no SUAP ou na publicação."""
+    abertas = [(n, explicacoes.completar_detalhes(p)) for n, p in enumerate(manifest.pendencias, 1) if not p.resolucao]
     grupos: dict[str, list] = {}
     for n, p in abertas:
         grupos.setdefault(p.tipo, []).append((n, p))
     saida = []
     for tipo, itens in grupos.items():
-        if tipo == "lattes_sem_comprovante":
-            cats = Counter(p.mensagem.split("(")[1].split(",")[0] for _, p in itens if "(" in p.mensagem)
-            detalhe = ", ".join(f"{v} {k}" for k, v in cats.most_common())
-        else:
-            detalhe = "; ".join(_resumo_pendencia(p) for _, p in itens[:3]) + ("…" if len(itens) > 3 else "")
-        pergunta = _PERGUNTAS.get(tipo, "{n} pendência(s): {detalhe}").format(
-            n=len(itens), ano=manifest.semestre.ano, detalhe=detalhe)
-        saida.append({"tipo": tipo, "quantidade": len(itens), "numeros": [n for n, _ in itens],
-                      "pergunta_sugerida": pergunta,
-                      "itens": [{"numero": n, "resumo": _resumo_pendencia(p)} for n, p in itens[:25]]})
+        exp = explicacoes.explicar(tipo)
+        saida.append({
+            "tipo": tipo, "titulo": exp.titulo, "quantidade": len(itens), "numeros": [n for n, _ in itens],
+            "o_que_e": exp.o_que_e, "por_que_importa": exp.por_que_importa, "dica": exp.dica,
+            "opcoes": explicacoes.opcoes(tipo),
+            "pergunta_sugerida": _pergunta(tipo, [p for _, p in itens], manifest),
+            "itens": [{"numero": n, "resumo": explicacoes.resumo_item(p),
+                       "sugestao": explicacoes.sugestao_item(p),
+                       "links": links.de_pendencia(manifest, p)} for n, p in itens[:40]],
+        })
     return saida
 
 

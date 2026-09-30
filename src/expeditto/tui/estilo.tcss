@@ -171,6 +171,21 @@ TabPane {
 .pergunta {
     margin-bottom: 1;
 }
+.explicacao {
+    color: $text-muted;
+    margin-bottom: 1;
+    padding-left: 2;
+    border-left: vkey $primary 50%;
+}
+.detalhe-item {
+    height: auto;
+    margin-bottom: 1;
+    padding: 0 1;
+    background: $panel;
+}
+.links-item Button {
+    background: $surface;
+}
 .itens {
     height: auto;
     max-height: 10;

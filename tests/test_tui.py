@@ -99,7 +99,7 @@ def test_preparo_decide_pendencias_em_lote(semestre_coletado):
         itens = tela.query_one("#itens-0", SelectionList)
         itens.deselect(3)  # o item 3 fica para depois
         await pilot.pause(0.1)
-        tela.query_one("#ignorar-0", Button).press()
+        tela.query_one("#decidir-ignorar-0", Button).press()
         await pilot.pause(0.5)
 
     _rodar(ExpedittoApp(), roteiro)

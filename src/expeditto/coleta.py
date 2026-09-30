@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 import unicodedata
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -15,7 +16,7 @@ from expeditto import acervo, semestres
 from expeditto.acervo import Cache
 from expeditto.classificar import classificar
 from expeditto.html import parse_data
-from expeditto.client import SuapClient
+from expeditto.client import SessaoExpirada, SuapClient
 from expeditto.models import (
     EstadoPlano, Evidencia, ItemAcervo, Manifest, Pendencia, Perfil, PlanoSemestre, Semestre, TipoEvidencia, Topico,
 )
@@ -180,6 +181,40 @@ def _baixar(client: SuapClient, cache: Cache, ev: Evidencia) -> tuple[Path, date
     return caminho, _validade(caminho)
 
 
+PARALELO = 4  # downloads simultâneos do SUAP
+
+
+def _baixar_todos(client: SuapClient, cache: Cache, evidencias: list[Evidencia], progresso: Progresso) -> dict:
+    """Baixa os comprovantes em paralelo, uma vez por URL (o mesmo PDF pode comprovar TCC e banca).
+    Devolve {url: (caminho, validade) | Exception}."""
+    por_url = {e.url_comprovante: e for e in evidencias if e.url_comprovante}
+    resultados: dict = {}
+    progresso("Baixando comprovantes", etapa="comprovantes", fracao=0)
+    with ThreadPoolExecutor(PARALELO) as pool:
+        futuros = {pool.submit(_baixar, client, cache, ev): url for url, ev in por_url.items()}
+        for n, futuro in enumerate(as_completed(futuros), 1):
+            url = futuros[futuro]
+            try:
+                resultados[url] = futuro.result()
+            except SessaoExpirada:
+                raise
+            except Exception as erro:  # noqa: BLE001 — vira pendência "download" para o item
+                resultados[url] = erro
+            progresso(f"Comprovantes ({n}/{len(por_url)}): {por_url[url].titulo[:50]}", etapa="comprovantes",
+                      fracao=n / max(len(por_url), 1))
+    return resultados
+
+
+def _periodo(ev: Evidencia) -> str:
+    if ev.data_evento:
+        return f"{ev.data_evento:%d/%m/%Y}"
+    if ev.inicio and ev.fim:
+        return f"{ev.inicio:%d/%m/%Y} a {ev.fim:%d/%m/%Y}"
+    if ev.inicio:
+        return f"desde {ev.inicio:%d/%m/%Y}"
+    return ""
+
+
 def _ministrado_incompleto(ev: Evidencia, pdf: Path, semestre: Semestre) -> list[Pendencia]:
     """A declaração de docência mostra o % de carga horária ministrada registrada no diário.
     Semestre encerrado com menos de 100% chama atenção da chefia → avisar o docente."""
@@ -190,6 +225,7 @@ def _ministrado_incompleto(ev: Evidencia, pdf: Path, semestre: Semestre) -> list
     if ministrado >= 100:
         return []
     return [Pendencia(tipo="diario_incompleto", evidencia_id=ev.id,
+                      detalhes={"diario": ev.titulo, "ministrado": str(ministrado), "atribuido": str(atribuido)},
                       mensagem=f"{ev.titulo}: {ministrado}% da carga horária ministrada registrada no SUAP "
                                f"(atribuído {atribuido}%). Completar o registro de aulas antes de enviar o RIT, "
                                f"ou justificar em 'Alterações de Atividades'.")]
@@ -257,25 +293,27 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
         pendencias.append(Pendencia(tipo="estado_plano",
                                     mensagem=f"Estado do plano {codigo}: {plano.estado.value}."))
 
-    a_baixar = sum(1 for e in do_semestre if e.url_comprovante or e.tipo == TipoEvidencia.ESTAGIO) or 1
-    baixados = 0
-    progresso("Baixando comprovantes", etapa="comprovantes", fracao=0)
+    for ev in do_semestre:
+        _declaracao_de_estagio(ev, sems[codigo])
+    baixados = _baixar_todos(client, cache, [e for e in do_semestre if e.tipo != TipoEvidencia.AFASTAMENTO],
+                             progresso) if baixar else {}
     for ev in do_semestre:
         cls = classificar(ev)
         if ev.tipo == TipoEvidencia.AFASTAMENTO:
             dias = (ev.fim - ev.inicio).days + 1 if ev.inicio and ev.fim else 0
             if dias >= _AFASTAMENTO_RELEVANTE_DIAS:
                 pendencias.append(Pendencia(tipo="afastamento", evidencia_id=ev.id,
+                                            detalhes={"titulo": ev.titulo, "periodo": _periodo(ev), "dias": str(dias)},
                                             mensagem=f"Afastamento de {dias} dias ({ev.titulo}). "
                                                      f"Mencionar em 'Alterações de Atividades'?"))
             continue
-        _declaracao_de_estagio(ev, sems[codigo])
         arquivo = validade = None
         if ev.url_comprovante and baixar:
-            baixados += 1
-            progresso(f"Baixando: {ev.titulo[:60]}", etapa="comprovantes", fracao=baixados / a_baixar)
             try:
-                origem, validade = _baixar(client, cache, ev)
+                resultado = baixados[ev.url_comprovante]
+                if isinstance(resultado, Exception):
+                    raise resultado
+                origem, validade = resultado
                 arquivo = str(origem.relative_to(acervo.config.home()))
                 for topico in cls.topicos:  # cópia física por tópico (pedido da cliente)
                     if (topico, origem.name) in copiados:
@@ -293,6 +331,8 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
             detalhe = f" (situação no SUAP: {situacao} — confirmar se entra no RIT)" \
                 if situacao and "Conclu" not in situacao else ""
             pendencias.append(Pendencia(tipo="sem_comprovante", evidencia_id=ev.id,
+                                        detalhes={"titulo": ev.titulo, "papel": ev.papel or "",
+                                                  "periodo": _periodo(ev), "situacao": situacao},
                                         mensagem=f"Sem comprovante no SUAP: {ev.titulo}{detalhe}"))
         if ev.tipo == TipoEvidencia.DIARIO and arquivo:
             pendencias += _ministrado_incompleto(ev, acervo.config.home() / arquivo, sems[codigo])
@@ -301,6 +341,7 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
                                         mensagem=f"Tópico incerto para '{ev.titulo}': {cls.motivo}"))
         if ev.extras.get("datas_inferidas"):
             pendencias.append(Pendencia(tipo="datas", evidencia_id=ev.id,
+                                        detalhes={"titulo": ev.titulo, "periodo": _periodo(ev)},
                                         mensagem=f"'{ev.titulo}': {ev.extras['datas_inferidas']}"))
         itens.append(ItemAcervo(evidencia_id=ev.id, topicos=cls.topicos, motivo=cls.motivo, arquivo=arquivo,
                                 validade=validade))
@@ -319,7 +360,13 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
 
     atas.aplicar(manifest)  # atas registradas pelo host (e-mail) sobrevivem a novas coletas
     entrada.aplicar(manifest)  # comprovantes colocados pelo docente na pasta de entrada (E8)
-    manifest.pendencias += lattes.lacunas(manifest, itens_lattes, evidencias)  # E7 (compara com tudo)
+    novas = lattes.lacunas(manifest, itens_lattes, evidencias)  # E7 (compara com tudo)
+    if novas:  # data, tipo e veículo das publicações (Crossref/OpenAlex): sugere o semestre de cada item
+        from expeditto import publicacoes
+
+        publicacoes.enriquecer(novas, manifest.semestre,
+                               lambda m, f=None: progresso(m, etapa="organizacao", fracao=f))
+    manifest.pendencias += novas
     decisoes.aplicar(manifest)  # decisões já tomadas pelo docente não são perguntadas de novo
     acervo.salvar_manifest(manifest)
     return manifest

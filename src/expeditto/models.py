@@ -162,6 +162,10 @@ def normalizar_papel(valor: str | None) -> str | None:
 class Pendencia(BaseModel):
     tipo: str
     mensagem: str
+    # dados estruturados para explicar a pendência (ex.: Lattes: título, categoria, data, veículo, tipo)
+    detalhes: dict[str, str] = Field(default_factory=dict)
+    # links além dos da evidência (ex.: DOI de uma publicação do Lattes)
+    links: dict[str, str] = Field(default_factory=dict)
     evidencia_id: str | None = None
     # decisão do docente: "manter" | "remover_item" | "justificar" | "ignorar"
     resolucao: str | None = None
