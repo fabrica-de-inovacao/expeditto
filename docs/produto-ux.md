@@ -1,5 +1,12 @@
 # Produto e experiência — nome, instalador, chat e CLI
 
+> **Decisões de 2026-09-30 (prevalecem sobre o texto abaixo):**
+> - Nome da ferramenta: **Expeditto** (dois "t", para diferenciar do nome próprio). Pacote, comando e servidor MCP: `expeditto`.
+> - Mascote: **despertador laranja em pixel art** (caracteres de bloco `▀▄` com cor, como o mascote do Claude Code), **inspirado** na Senhorita Minutos (relógio mascote da AVT, série *Loki*), com desenho original. Sem nome próprio: é a "cara" do Expeditto. Protótipos em `docs/marca/` (v2 aprovada como direção).
+> - Hospedagem: VPS com **Coolify 4.3.23**, projeto **Expeditto** com os recursos na rede do próprio Coolify; domínio **expeditto.fabitz.com.br** (DNS já resolve para a VPS). Primeiro recurso: site estático com `install.ps1`/`install.sh`; depois página de apresentação e tutoriais.
+> - App OAuth do Gmail: **adiado**. E-mail pelo conector do host (Claude); backup próprio quando houver demanda.
+> - TUI deve ocupar a janela inteira do terminal (Textual em tela cheia, layout responsivo).
+>
 > 2026-09-30. Proposta para debate. Nome **provisório**: Expedito (ver §1). Licença: **AGPL-3.0**.
 > Premissas: distribuição **pública** e gerenciada por nós; CLI + MCP no mesmo pacote; e-mail pelo conector do Claude, com backup próprio para outros apps.
 
