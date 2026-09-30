@@ -24,7 +24,7 @@ class Mascote(Static):
 
     DEFAULT_CSS = """
     Mascote { width: 34; height: 16; }
-    Mascote.pequeno { width: 18; height: 8; }
+    Mascote.pequeno { width: 16; height: 7; }
     """
 
     def __init__(self, animacao: str = "ocioso", tamanho: str = "grande", **kwargs) -> None:

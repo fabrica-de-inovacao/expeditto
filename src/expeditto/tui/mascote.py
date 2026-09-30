@@ -149,51 +149,49 @@ def pixels(pose: str = "normal", tamanho: str = "grande") -> tuple[str, ...]:
     return tuple("".join(linha) for linha in t.px)
 
 
-# Versão pequena (18×16 pixels = 18×8 caracteres) para terminais de altura média.
-PEQ_LARG, PEQ_ALT = 18, 16
+# Versão pequena (16×14 pixels = 16×7 caracteres) para terminais de altura média.
+# Grade simétrica em torno de x = 8: o pixel x espelha em 15 - x.
+PEQ_LARG, PEQ_ALT = 16, 14
 
 
 def _pequeno(pose: str) -> tuple[str, ...]:
     olhos, boca, esq, dir_, martelo, faiscas = POSES[pose]
     t = _Tela(PEQ_LARG, PEQ_ALT)
-    cx, cy = 9, 9
-    for bx in (3.5, 14.5):  # sinos
-        t.circulo(bx, 3.4, 2.6, "o")
-        t.circulo(bx, 3.4, 1.7, "O")
-    for y in range(4, 6):
-        for x in range(PEQ_LARG):
-            if t.px[y][x] in "oO":
-                t.px[y][x] = "."
-    t.ponto(cx + martelo, 1, "o"), t.ponto(cx, 2, "H")
-    t.circulo(cx, cy, 6.9, "o")
-    t.circulo(cx, cy, 6.0, "O")
-    t.circulo(cx, cy, 4.7, "W")
-    t.ponto(5, 6, "L"), t.ponto(6, 5, "L")
-    for ex in (cx - 3, cx + 2):  # olhos
+    for bx in (2.6, 13.4):  # sinos, afastados do corpo
+        t.circulo(bx, 2.2, 2.0, "o")
+        t.circulo(bx, 2.2, 1.1, "O")
+    for x in range(PEQ_LARG):  # sino = meia esfera
+        if t.px[3][x] in "oO":
+            t.px[3][x] = "."
+    t.ponto(7 + (1 if martelo > 0 else 0), 0, "o"), t.ponto(8 - (1 if martelo < 0 else 0), 0, "o")
+    t.circulo(8, 7.5, 5.7, "o")  # corpo (linhas 2 a 12)
+    t.circulo(8, 7.5, 4.8, "O")
+    t.circulo(8, 7.5, 3.8, "W")
+    t.ponto(4, 4, "L"), t.ponto(5, 3, "L")
+    for ex in (5, 10):  # olhos
         if olhos == "abertos":
-            t.ponto(ex, cy - 2, "K"), t.ponto(ex, cy - 1, "K")
+            t.ponto(ex, 6, "K"), t.ponto(ex, 7, "K")
         else:
-            t.ponto(ex - 1, cy - 1, "K"), t.ponto(ex, cy - 2, "K"), t.ponto(ex + 1, cy - 1, "K")
-    t.ponto(cx - 4, cy, "P"), t.ponto(cx + 3, cy, "P")
+            t.ponto(ex, 7, "K"), t.ponto(ex + (1 if ex == 5 else -1), 7, "K")
+    t.ponto(4, 8, "P"), t.ponto(11, 8, "P")
     if boca == "sorriso":
-        for x, y in ((cx - 2, cy + 1), (cx - 1, cy + 2), (cx, cy + 2), (cx + 1, cy + 1)):
+        for x, y in ((6, 9), (7, 10), (8, 10), (9, 9)):
             t.ponto(x, y, "K")
     elif boca == "aberta":
-        t.linha(cx - 2, cy + 1, cx + 1, cy + 1, "K"), t.ponto(cx - 1, cy + 2, "R"), t.ponto(cx, cy + 2, "R")
+        t.linha(6, 9, 9, 9, "K"), t.ponto(7, 10, "R"), t.ponto(8, 10, "R")
     else:
-        t.linha(cx - 1, cy + 2, cx + 1, cy + 2, "K")
-    for lado, pose_braco in ((-1, esq), (1, dir_)):  # braços (ponteiros)
-        x0 = cx + lado * 7 - (1 if lado > 0 else 0)
+        t.ponto(7, 10, "K"), t.ponto(8, 10, "K")
+    for x, pose_braco in ((1, esq), (14, dir_)):  # braços (ponteiros) e luvas
         if pose_braco == "baixo":
-            t.ponto(x0 + lado, cy + 2, "H"), t.ponto(x0 + lado, cy + 3, "G")
+            t.ponto(x, 9, "H"), t.ponto(x, 10, "G")
         elif pose_braco == "acima":
-            t.ponto(x0 + lado, cy - 1, "H"), t.ponto(x0 + lado, cy - 2, "G")
+            t.ponto(x, 6, "H"), t.ponto(x, 5, "G")
         else:
-            t.ponto(x0 + lado, cy - 2, "H"), t.ponto(x0 + lado, cy - 3, "H"), t.ponto(x0 + lado, cy - 4, "G")
-    for px in (cx - 4, cx + 2):  # pés
-        t.ponto(px, cy + 6, "b"), t.ponto(px + 1, cy + 6, "b")
+            t.ponto(x, 5, "H"), t.ponto(x, 4, "H"), t.ponto(x, 3, "G")
+    for x in (5, 6, 9, 10):  # pés, abaixo do corpo
+        t.ponto(x, 13, "b")
     if faiscas:
-        for x, y in ((0, 0), (17, 0), (0, 8), (17, 8)):
+        for x, y in ((0, 0), (15, 0), (0, 12), (15, 12)):
             t.ponto(x, y, "Y")
     return tuple("".join(linha) for linha in t.px)
 
