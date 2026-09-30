@@ -13,7 +13,7 @@ from expeditto import acervo, auth, roteiro
 from expeditto.client import SessaoExpirada, SuapClient
 from expeditto.models import EstadoPlano, PlanoSemestre
 from expeditto.suap import planos
-from expeditto.tui.componentes import Mascote, saudacao
+from expeditto.tui.componentes import humor, mascotes, saudacao
 
 SITUACOES = {
     EstadoPlano.SEM_PLANO: "sem plano",
@@ -42,7 +42,7 @@ class Inicio(Screen):
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="topo"):
-            yield Mascote("acenando", id="mascote")
+            yield from mascotes("acenando")
             with Vertical(id="boas-vindas"):
                 yield Label("Expeditto", id="marca")
                 yield Label("seu segundo expediente, resolvido", id="lema")

@@ -24,10 +24,12 @@ class Mascote(Static):
 
     DEFAULT_CSS = """
     Mascote { width: 34; height: 16; }
+    Mascote.pequeno { width: 18; height: 8; }
     """
 
-    def __init__(self, animacao: str = "ocioso", **kwargs) -> None:
-        super().__init__(**kwargs)
+    def __init__(self, animacao: str = "ocioso", tamanho: str = "grande", **kwargs) -> None:
+        super().__init__(classes=tamanho, **kwargs)
+        self.tamanho = tamanho
         self._quadro = 0
         self._timer = None
         self.set_reactive(Mascote.animacao, animacao)
@@ -47,7 +49,7 @@ class Mascote(Static):
 
     def _desenhar(self) -> None:
         pose, _ = self._sequencia()[self._quadro % len(self._sequencia())]
-        self.update(mascote.render(pose))
+        self.update(mascote.render(pose, tamanho=self.tamanho))
 
     def _agendar(self) -> None:
         if self._timer:
@@ -76,13 +78,23 @@ TOPICO_CURTO = {"apoio_ensino": "Apoio ao ensino", "programas_projetos_ensino": 
                 "extensao": "Extensão", "gestao": "Gestão e representação", "alteracoes": "Alterações de atividades"}
 
 
+def mascotes(animacao: str = "ocioso") -> list[Mascote]:
+    """O mascote nos dois tamanhos; o CSS mostra um ou outro conforme a altura do terminal."""
+    return [Mascote(animacao, "grande"), Mascote(animacao, "pequeno")]
+
+
+def humor(tela, animacao: str) -> None:
+    for m in tela.query(Mascote):
+        m.animacao = animacao
+
+
 class Trilha(Static):
     """As etapas do roteiro do RIT com ✓ ◐ ·, como no chat."""
 
     def mostrar(self, etapa: str) -> None:
         indice = roteiro.ETAPAS.index(etapa)
         texto = Text()
-        for i, e in enumerate(roteiro.ETAPAS[1:], start=1):
+        for i, e in enumerate(roteiro.ETAPAS[2:], start=2):  # login e semestre já estão resolvidos aqui
             if i < indice:
                 texto.append("✓ ", style=f"bold {COR['verde']}").append(ROTULOS_CURTOS[e], style=COR["verde"])
             elif i == indice:
@@ -90,7 +102,7 @@ class Trilha(Static):
             else:
                 texto.append("· ", style=COR["apagado"]).append(ROTULOS_CURTOS[e], style=COR["apagado"])
             if i < len(roteiro.ETAPAS) - 1:
-                texto.append(" ─ ", style=COR["apagado"])
+                texto.append("  ", style=COR["apagado"])
         self.update(texto)
 
 

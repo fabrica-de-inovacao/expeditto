@@ -12,7 +12,7 @@ from textual.widgets import Button, Footer, Label, Static
 
 from expeditto import auth, coleta, diagnostico
 from expeditto.client import SuapClient
-from expeditto.tui.componentes import Mascote, PainelTarefa
+from expeditto.tui.componentes import PainelTarefa, humor, mascotes
 from expeditto.tui.tema import COR
 
 
@@ -23,7 +23,7 @@ class Login(ModalScreen[bool]):
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="caixa-login"):
-            yield Mascote("acenando", id="mascote")
+            yield from mascotes("acenando")
             with Vertical():
                 yield Label("Entrar no SUAP", classes="titulo-caixa")
                 yield Static("Abri uma janela do SUAP no seu computador. Faça o login nela (CAPTCHA ou Gov.br); "
@@ -51,13 +51,16 @@ class Login(ModalScreen[bool]):
         self._vigia.stop()
         if self.tarefa.estado == "concluida":
             perfil = self.tarefa.resultado
-            self.query_one(Mascote).animacao = "comemorando"
+            humor(self, "comemorando")
             nome = (perfil.nome_usual or perfil.nome).split()[0].title()
             self.query_one("#instrucao", Static).update(f"Olá, {nome}! Sessão ativa · {perfil.campus or 'IFMA'}.")
-            self.set_timer(1.6, lambda: self.dismiss(True))
+            self.set_timer(1.6, self._fechar_com_sucesso)
         else:
-            self.query_one(Mascote).animacao = "preocupado"
+            humor(self, "preocupado")
             self.query_one("#instrucao", Static).update(f"Não deu certo: {self.tarefa.erro}")
+
+    def _fechar_com_sucesso(self) -> None:
+        self.dismiss(True)  # sem `return`: o timer aguardaria o retorno e o Textual proíbe isso
 
     @on(Button.Pressed, "#fechar")
     def action_fechar(self) -> None:
@@ -70,7 +73,7 @@ class Diagnostico(Screen):
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="cabecalho"):
-            yield Mascote(id="mascote")
+            yield from mascotes()
             with Vertical(id="roteiro"):
                 yield Label("Diagnóstico", id="titulo")
                 yield Static("Vou conferir se está tudo pronto para trabalhar.", id="fala")
@@ -86,7 +89,7 @@ class Diagnostico(Screen):
 
     @on(Button.Pressed, "#verificar")
     def action_verificar(self) -> None:
-        self.query_one(Mascote).animacao = "trabalhando"
+        humor(self, "trabalhando")
         self._verificar()
 
     @on(Button.Pressed, "#voltar")
@@ -114,4 +117,4 @@ class Diagnostico(Screen):
         fala = {"ok": "Tudo pronto para trabalhar!", "aviso": "Quase tudo certo. Veja os pontos em amarelo.",
                 "erro": "Encontrei um problema. Veja como resolver logo abaixo dele."}[geral]
         self.query_one("#fala", Static).update(f"“{fala}”")
-        self.query_one(Mascote).animacao = {"ok": "comemorando", "aviso": "ocioso", "erro": "preocupado"}[geral]
+        humor(self, {"ok": "comemorando", "aviso": "ocioso", "erro": "preocupado"}[geral])

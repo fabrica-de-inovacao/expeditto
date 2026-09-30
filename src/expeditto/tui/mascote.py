@@ -45,16 +45,17 @@ POSES = {
 
 
 class _Tela:
-    def __init__(self) -> None:
-        self.px = [["." for _ in range(LARG)] for _ in range(ALT)]
+    def __init__(self, larg: int = LARG, alt: int = ALT) -> None:
+        self.larg, self.alt = larg, alt
+        self.px = [["." for _ in range(larg)] for _ in range(alt)]
 
     def ponto(self, x: int, y: int, cor: str) -> None:
-        if 0 <= x < LARG and 0 <= y < ALT:
+        if 0 <= x < self.larg and 0 <= y < self.alt:
             self.px[y][x] = cor
 
     def circulo(self, cx: float, cy: float, r: float, cor: str) -> None:
-        for y in range(ALT):
-            for x in range(LARG):
+        for y in range(self.alt):
+            for x in range(self.larg):
                 if math.hypot(x + 0.5 - cx, y + 0.5 - cy) < r:
                     self.px[y][x] = cor
 
@@ -96,7 +97,9 @@ def _braco(t: _Tela, lado: int, pose: str) -> None:
 
 
 @lru_cache(maxsize=None)
-def pixels(pose: str = "normal") -> tuple[str, ...]:
+def pixels(pose: str = "normal", tamanho: str = "grande") -> tuple[str, ...]:
+    if tamanho == "pequeno":
+        return _pequeno(pose)
     olhos, boca, esq, dir_, martelo, faiscas = POSES[pose]
     t = _Tela()
     _sinos(t, martelo)
@@ -146,15 +149,65 @@ def pixels(pose: str = "normal") -> tuple[str, ...]:
     return tuple("".join(linha) for linha in t.px)
 
 
+# Versão pequena (18×16 pixels = 18×8 caracteres) para terminais de altura média.
+PEQ_LARG, PEQ_ALT = 18, 16
+
+
+def _pequeno(pose: str) -> tuple[str, ...]:
+    olhos, boca, esq, dir_, martelo, faiscas = POSES[pose]
+    t = _Tela(PEQ_LARG, PEQ_ALT)
+    cx, cy = 9, 9
+    for bx in (3.5, 14.5):  # sinos
+        t.circulo(bx, 3.4, 2.6, "o")
+        t.circulo(bx, 3.4, 1.7, "O")
+    for y in range(4, 6):
+        for x in range(PEQ_LARG):
+            if t.px[y][x] in "oO":
+                t.px[y][x] = "."
+    t.ponto(cx + martelo, 1, "o"), t.ponto(cx, 2, "H")
+    t.circulo(cx, cy, 6.9, "o")
+    t.circulo(cx, cy, 6.0, "O")
+    t.circulo(cx, cy, 4.7, "W")
+    t.ponto(5, 6, "L"), t.ponto(6, 5, "L")
+    for ex in (cx - 3, cx + 2):  # olhos
+        if olhos == "abertos":
+            t.ponto(ex, cy - 2, "K"), t.ponto(ex, cy - 1, "K")
+        else:
+            t.ponto(ex - 1, cy - 1, "K"), t.ponto(ex, cy - 2, "K"), t.ponto(ex + 1, cy - 1, "K")
+    t.ponto(cx - 4, cy, "P"), t.ponto(cx + 3, cy, "P")
+    if boca == "sorriso":
+        for x, y in ((cx - 2, cy + 1), (cx - 1, cy + 2), (cx, cy + 2), (cx + 1, cy + 1)):
+            t.ponto(x, y, "K")
+    elif boca == "aberta":
+        t.linha(cx - 2, cy + 1, cx + 1, cy + 1, "K"), t.ponto(cx - 1, cy + 2, "R"), t.ponto(cx, cy + 2, "R")
+    else:
+        t.linha(cx - 1, cy + 2, cx + 1, cy + 2, "K")
+    for lado, pose_braco in ((-1, esq), (1, dir_)):  # braços (ponteiros)
+        x0 = cx + lado * 7 - (1 if lado > 0 else 0)
+        if pose_braco == "baixo":
+            t.ponto(x0 + lado, cy + 2, "H"), t.ponto(x0 + lado, cy + 3, "G")
+        elif pose_braco == "acima":
+            t.ponto(x0 + lado, cy - 1, "H"), t.ponto(x0 + lado, cy - 2, "G")
+        else:
+            t.ponto(x0 + lado, cy - 2, "H"), t.ponto(x0 + lado, cy - 3, "H"), t.ponto(x0 + lado, cy - 4, "G")
+    for px in (cx - 4, cx + 2):  # pés
+        t.ponto(px, cy + 6, "b"), t.ponto(px + 1, cy + 6, "b")
+    if faiscas:
+        for x, y in ((0, 0), (17, 0), (0, 8), (17, 8)):
+            t.ponto(x, y, "Y")
+    return tuple("".join(linha) for linha in t.px)
+
+
 @lru_cache(maxsize=None)
-def render(pose: str = "normal", fundo: str | None = None) -> Text:
+def render(pose: str = "normal", fundo: str | None = None, tamanho: str = "grande") -> Text:
     """Desenha a pose com meios-blocos; `fundo` pinta os pixels transparentes (opcional)."""
-    px = list(pixels(pose))
+    px = list(pixels(pose, tamanho))
+    largura = len(px[0])
     if len(px) % 2:
-        px.append("." * LARG)
+        px.append("." * largura)
     texto = Text(no_wrap=True, overflow="crop")
     for y in range(0, len(px), 2):
-        for x in range(LARG):
+        for x in range(largura):
             cima, baixo = PALETA[px[y][x]] or fundo, PALETA[px[y + 1][x]] or fundo
             if cima is None and baixo is None:
                 texto.append(" ")

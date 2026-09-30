@@ -50,6 +50,28 @@ def test_inicio_sem_sessao(tmp_path, monkeypatch):
     _rodar(ExpedittoApp(), roteiro)
 
 
+def test_login_conclui_e_fecha_a_janela_sem_derrubar_o_app(tmp_path, monkeypatch):
+    """Regressão: dismiss() chamado por timer derrubava o app ("Can't await screen.dismiss()")."""
+    from expeditto.models import Perfil
+    from expeditto.tui.telas import Login
+
+    monkeypatch.setenv("EXPEDITTO_HOME", str(tmp_path))
+    monkeypatch.setattr("expeditto.auth.carregar_sessao", lambda *a, **k: None)
+    monkeypatch.setattr("expeditto.auth.login_interativo", lambda *a, **k: {"__Host-sessionid": "x"})
+    monkeypatch.setattr("expeditto.coleta.setup", lambda client: Perfil(matricula="1", nome="Fulana de Tal"))
+    fechou = []
+
+    async def roteiro(app, pilot):
+        app.entrar(depois=lambda: fechou.append(True))
+        await pilot.pause(0.5)
+        assert isinstance(app.screen, Login)
+        await pilot.pause(2.5)
+        assert isinstance(app.screen, Inicio)
+
+    _rodar(ExpedittoApp(), roteiro)
+    assert fechou == [True]
+
+
 @pytest.fixture
 def semestre_coletado(tmp_path, monkeypatch):
     monkeypatch.setenv("EXPEDITTO_HOME", str(tmp_path))

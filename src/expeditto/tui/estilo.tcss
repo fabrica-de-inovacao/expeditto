@@ -6,17 +6,16 @@ Screen {
 
 /* -- cabeçalho com o mascote ------------------------------------------------------------ */
 #topo, #cabecalho {
-    height: 18;
-    padding: 1 2 0 2;
+    height: auto;
+    padding: 1 2;
     background: $surface;
     border-bottom: tall $primary 40%;
 }
-#mascote {
+Mascote {
     margin-right: 3;
 }
 #boas-vindas, #roteiro {
-    height: 100%;
-    padding-top: 1;
+    height: auto;
 }
 #marca {
     text-style: bold;
@@ -58,11 +57,40 @@ Screen {
 .sessao-aviso { color: $warning; }
 .sessao-erro { color: $error; }
 #acoes {
-    height: 3;
+    height: 1;
     margin-top: 1;
 }
-#acoes Button, .botoes Button {
+
+/* botões compactos: uma linha, sem borda */
+Button {
+    height: 1;
+    min-width: 8;
+    border: none;
+    padding: 0 2;
     margin-right: 2;
+    background: $panel;
+}
+Button:hover {
+    background: $primary 30%;
+}
+Button:focus {
+    text-style: bold underline;
+}
+Button.-primary {
+    background: $primary;
+    color: $background;
+}
+Button.-success {
+    background: $success 80%;
+    color: $background;
+}
+Button.-warning {
+    background: $warning 85%;
+    color: $background;
+}
+Button.-error {
+    background: $error 85%;
+    color: $background;
 }
 
 /* -- início ---------------------------------------------------------------------------- */
@@ -105,7 +133,7 @@ TabPane {
     margin-top: 1;
 }
 .botoes {
-    height: 3;
+    height: 1;
     margin-bottom: 1;
 }
 .vazio {
@@ -150,12 +178,16 @@ TabPane {
     margin-bottom: 1;
 }
 .justificar {
-    height: 3;
+    height: 1;
     margin-bottom: 1;
 }
 .justificar Input {
     width: 1fr;
+    height: 1;
+    border: none;
+    padding: 0 1;
     margin-right: 2;
+    background: $panel;
 }
 .decididas {
     color: $success;
@@ -222,7 +254,7 @@ Login {
 }
 #caixa-login {
     width: 100;
-    height: 22;
+    height: auto;
     border: thick $primary;
     background: $surface;
     padding: 1 2;
@@ -242,18 +274,22 @@ Login {
     padding: 1 2;
 }
 
-/* -- telas estreitas: o mascote sai para dar espaço -------------------------------------- */
-Screen.-estreito #mascote, Screen.-baixo #mascote {
+/* -- mascote: grande em terminais altos, pequeno nos médios, some nos pequenos ------------ */
+Mascote.pequeno {
     display: none;
 }
-Screen.-estreito #topo, Screen.-estreito #cabecalho, Screen.-baixo #topo, Screen.-baixo #cabecalho {
-    height: auto;
-    padding-top: 0;
+Screen.-medio Mascote.grande {
+    display: none;
 }
-Screen.-estreito #boas-vindas, Screen.-estreito #roteiro, Screen.-baixo #boas-vindas, Screen.-baixo #roteiro {
-    height: auto;
-    padding-top: 0;
+Screen.-medio Mascote.pequeno {
+    display: block;
 }
-Screen.-baixo #lema, Screen.-baixo #titulo, Screen.-baixo #sessao {
+Screen.-baixo Mascote, Screen.-estreito Mascote {
+    display: none;
+}
+Screen.-baixo #topo, Screen.-baixo #cabecalho {
+    padding: 0 2;
+}
+Screen.-baixo #lema, Screen.-baixo #titulo, Screen.-baixo #sessao, Screen.-baixo #fala {
     margin: 0;
 }

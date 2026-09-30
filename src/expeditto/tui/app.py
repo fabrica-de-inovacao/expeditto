@@ -19,8 +19,8 @@ class ExpedittoApp(App):
     SUB_TITLE = "seu segundo expediente, resolvido"
     CSS_PATH = Path(__file__).with_name("estilo.tcss")
     ENABLE_COMMAND_PALETTE = False
-    HORIZONTAL_BREAKPOINTS = [(0, "-estreito"), (100, "-largo")]
-    VERTICAL_BREAKPOINTS = [(0, "-baixo"), (38, "-alto")]
+    HORIZONTAL_BREAKPOINTS = [(0, "-estreito"), (80, "-largo")]
+    VERTICAL_BREAKPOINTS = [(0, "-baixo"), (24, "-medio"), (46, "-alto")]
 
     def __init__(self, alto_contraste: bool = False, semestre: str | None = None) -> None:
         super().__init__()

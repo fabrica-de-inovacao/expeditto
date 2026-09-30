@@ -19,7 +19,7 @@ from textual.widgets.option_list import Option
 from expeditto import acervo, anexos, auth, coleta, entrada, formulario, pendencias, roteiro, textos
 from expeditto.client import SessaoExpirada, SuapClient
 from expeditto.models import Topico
-from expeditto.tui.componentes import TOPICO_CURTO, Mascote, PainelTarefa, Trilha, html_para_texto
+from expeditto.tui.componentes import TOPICO_CURTO, PainelTarefa, Trilha, html_para_texto, humor, mascotes
 
 ABA_DA_ETAPA = {"coletar": "coleta", "pendencias": "pendencias", "alteracoes": "pendencias", "anexos": "anexos",
                 "relatos": "relatos", "previa": "salvar", "concluido": "salvar"}
@@ -67,7 +67,7 @@ class Preparo(Screen):
     # -- estrutura ---------------------------------------------------------------------
     def compose(self) -> ComposeResult:
         with Horizontal(id="cabecalho"):
-            yield Mascote(id="mascote")
+            yield from mascotes()
             with Vertical(id="roteiro"):
                 yield Label(f"RIT {self.semestre}", id="titulo")
                 yield Static("", id="fala")
@@ -127,7 +127,7 @@ class Preparo(Screen):
         self.query_one(Trilha).mostrar(self.passo.etapa)
         self.query_one("#proximo", Button).label = f"▸ {BOTAO_DA_ETAPA[self.passo.etapa]}"
         if not self._tarefa or self._tarefa.estado != "executando":
-            self.query_one(Mascote).animacao = "comemorando" if self.passo.etapa == "concluido" else "ocioso"
+            humor(self, "comemorando" if self.passo.etapa == "concluido" else "ocioso")
         self.query_one("#coletar", Button).label = "Coletar de novo" if manifest else "Coletar comprovantes"
         self._resumo_coleta(manifest)
         self.run_worker(self._cartoes_pendencias(manifest), exclusive=True, group="cartoes")
@@ -197,7 +197,7 @@ class Preparo(Screen):
         painel.mount(PainelTarefa(self._tarefa))
         painel.remove_class("vazio-painel")
         self.query_one("#coletar", Button).disabled = True
-        self.query_one(Mascote).animacao = "trabalhando"
+        humor(self, "trabalhando")
         self._vigia = self.set_interval(0.25, self._acompanhar)
 
     def _acompanhar(self) -> None:
@@ -211,9 +211,9 @@ class Preparo(Screen):
         if tarefa.estado == "concluida":
             self.notify(f"Coleta de {self.semestre} concluída.", title="Pronto!")
             self.atualizar(ir_para_etapa=True)
-            self.query_one(Mascote).animacao = "comemorando"
+            humor(self, "comemorando")
         else:
-            self.query_one(Mascote).animacao = "preocupado"
+            humor(self, "preocupado")
             self.notify(tarefa.erro or "Algo deu errado.", title="A coleta parou", severity="error", timeout=10)
 
     # -- pendências --------------------------------------------------------------------
@@ -306,7 +306,7 @@ class Preparo(Screen):
             self.notify("Colete os comprovantes primeiro.", severity="warning")
             return
         self.query_one("#montar", Button).disabled = True
-        self.query_one(Mascote).animacao = "trabalhando"
+        humor(self, "trabalhando")
         self._montar_em_segundo_plano()
 
     @work(thread=True, exclusive=True, group="montar")
@@ -321,12 +321,12 @@ class Preparo(Screen):
     def _montado(self, erro: str | None) -> None:
         self.query_one("#montar", Button).disabled = False
         if erro:
-            self.query_one(Mascote).animacao = "preocupado"
+            humor(self, "preocupado")
             self.notify(erro, title="Não consegui montar os anexos", severity="error")
             return
         self.notify("Anexos montados.", title="Pronto!")
         self.atualizar(ir_para_etapa=True)
-        self.query_one(Mascote).animacao = "comemorando"
+        humor(self, "comemorando")
 
     @on(Button.Pressed, "#abrir-anexos")
     def _abrir_anexos(self) -> None:
@@ -421,7 +421,7 @@ class Preparo(Screen):
         self._confirmar_ate = 0
         botao.disabled = True
         botao.label = "Salvando no SUAP…"
-        self.query_one(Mascote).animacao = "trabalhando"
+        humor(self, "trabalhando")
         self._salvar_em_segundo_plano()
 
     def _desarmar(self) -> None:
@@ -445,7 +445,7 @@ class Preparo(Screen):
         botao = self.query_one("#salvar-suap", Button)
         botao.disabled, botao.label, botao.variant = False, "Salvar no SUAP como rascunho", "warning"
         if erro:
-            self.query_one(Mascote).animacao = "preocupado"
+            humor(self, "preocupado")
             self.notify(erro, title="Não salvei", severity="error", timeout=10)
             return
         manifest = acervo.carregar_manifest(self.semestre)
@@ -454,7 +454,7 @@ class Preparo(Screen):
         if not all(resultado.textos_conferem.values()):
             self.notify("Salvei, mas algum texto ficou diferente no SUAP. Confira pelo link.", severity="warning")
         self.atualizar()
-        self.query_one(Mascote).animacao = "comemorando"
+        humor(self, "comemorando")
 
     @on(Markdown.LinkClicked)
     def _link(self, evento: Markdown.LinkClicked) -> None:
