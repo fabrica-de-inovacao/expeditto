@@ -8,13 +8,15 @@ diz em que passo o semestre está e qual é o próximo. Tarefas longas devolvem 
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 from collections import Counter
 
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 
-from expeditto import (acervo, anexos, atas, auth, coleta, config, diagnostico as diag, entrada, formulario,
+from expeditto import (acervo, anexos, atas, atualizacao, auth, coleta, config, diagnostico as diag, entrada,
+                       formulario,
                        gmail, pendencias, roteiro, tarefas, textos)
 from expeditto.client import SessaoExpirada, SuapClient
 from expeditto.models import EstadoPlano, Topico
@@ -44,9 +46,20 @@ COMO CONDUZIR:
 6. Antes de salvar, mostre `previa_preenchimento` e peça confirmação explícita. Só então
    `salvar_no_suap(confirmado=true)`. Ao final, mostre o `cartao` exatamente como veio.
 7. A ENTREGA (submeter para avaliação) é sempre do docente, no SUAP. Se algo falhar, use `diagnostico`.
+8. Se `preparar_rit` trouxer `atualizacao`, avise o docente UMA vez (versão nova disponível) e ofereça atualizar.
+   Só chame `atualizar_expeditto(confirmado=true)` se ele pedir.
 """
 
-servidor = MCPServer(name="expeditto", title="Expeditto", instructions=INSTRUCOES, version="0.2.0")
+servidor = MCPServer(name="expeditto", title="Expeditto", instructions=INSTRUCOES,
+                     version=atualizacao.versao_instalada())
+
+# Anotações explícitas (sem elas, o protocolo assume "pode destruir" e "fala com o mundo externo",
+# e os apps pedem confirmação a cada chamada). Só salvar_no_suap e atualizar_expeditto são sensíveis.
+LEITURA = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
+LEITURA_SUAP = ToolAnnotations(readOnlyHint=True, openWorldHint=True)
+ESCRITA_LOCAL = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False)
+COLETA = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True)
+SENSIVEL = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True)
 _tarefas = tarefas.Gerenciador()
 
 
@@ -72,7 +85,7 @@ def _manifest(semestre: str):
 
 
 # -- porta de entrada ------------------------------------------------------------------------
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@servidor.tool(annotations=LEITURA_SUAP)
 def preparar_rit(semestre: str | None = None, seguir_sem_decidir: bool = False) -> dict:
     """PONTO DE PARTIDA para qualquer pedido sobre o RIT (Relatório Individual de Trabalho), o relatório do
     semestre ou os comprovantes do SUAP. Diz em que passo o semestre (AAAA.P) está e qual ferramenta chamar
@@ -87,13 +100,15 @@ def preparar_rit(semestre: str | None = None, seguir_sem_decidir: bool = False) 
             auth.apagar_sessao()
     em_curso = _tarefas.em_andamento()
     passo = roteiro.situacao(semestre, seguir_sem_decidir, a_preencher).como_dict()
+    if nova := atualizacao.verificar():
+        passo["atualizacao"] = nova | {"como": "Avise o docente uma vez. Se ele quiser, chame `atualizar_expeditto`."}
     if em_curso:
         passo["tarefa_em_andamento"] = em_curso[0].visao()
         passo["proximo"] = {"ferramenta": "aguardar_tarefa", "argumentos": {"tarefa_id": em_curso[0].id}}
     return passo
 
 
-@servidor.tool()
+@servidor.tool(annotations=LEITURA)
 async def aguardar_tarefa(tarefa_id: str, segundos: int = 45) -> dict:
     """Espera uma tarefa em segundo plano avançar (até `segundos`, máx. 55) e devolve o progresso:
     `progresso` (barra), `etapas` e `detalhe`. Mostre a barra ao docente a cada chamada."""
@@ -114,14 +129,14 @@ async def aguardar_tarefa(tarefa_id: str, segundos: int = 45) -> dict:
     return visao
 
 
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@servidor.tool(annotations=LEITURA)
 def status_tarefa(tarefa_id: str) -> dict:
     """Progresso atual de uma tarefa, sem esperar (prefira `aguardar_tarefa`)."""
     tarefa = _tarefas.obter(tarefa_id)
     return tarefa.visao() if tarefa else {"erro": f"tarefa {tarefa_id} não encontrada"}
 
 
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@servidor.tool(annotations=LEITURA_SUAP)
 def diagnostico(verificar_suap: bool = True) -> dict:
     """Verifica se o Expeditto está pronto: versão, pasta de dados, navegador, sessão no SUAP, perfil,
     apps de IA conectados e e-mail. Cada item traz `como_resolver` quando há problema."""
@@ -129,7 +144,7 @@ def diagnostico(verificar_suap: bool = True) -> dict:
 
 
 # -- sessão e semestres ------------------------------------------------------------------------
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@servidor.tool(annotations=LEITURA_SUAP)
 def status_sessao() -> dict:
     """Verifica se há sessão válida no SUAP e quem é o docente."""
     try:
@@ -142,7 +157,7 @@ def status_sessao() -> dict:
         return {"sessao": "ausente_ou_expirada", "acao": "chame `login` e peça ao docente para entrar no SUAP"}
 
 
-@servidor.tool()
+@servidor.tool(annotations=COLETA)
 def login() -> dict:
     """Abre uma janela do SUAP para o docente fazer login (CAPTCHA/Gov.br); ela fecha sozinha.
     Devolve `tarefa_id`: acompanhe com `aguardar_tarefa` e avise o docente para olhar a janela."""
@@ -157,7 +172,7 @@ def login() -> dict:
     return tarefa.visao() | {"mensagem": "Abri uma janela do SUAP no seu computador. Faça o login nela."}
 
 
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@servidor.tool(annotations=LEITURA_SUAP)
 def listar_semestres() -> list[dict]:
     """Semestres com o estado do PIT/RIT e o link correspondente no SUAP."""
     with _cliente() as client:
@@ -168,7 +183,7 @@ def listar_semestres() -> list[dict]:
             for p in lista]
 
 
-@servidor.tool()
+@servidor.tool(annotations=COLETA)
 def coletar_semestre(semestre: str) -> dict:
     """Coleta os comprovantes do semestre (AAAA.P) no SUAP, em segundo plano (2 a 8 minutos).
     Devolve `tarefa_id`: acompanhe com `aguardar_tarefa`, mostrando a barra ao docente."""
@@ -215,13 +230,13 @@ def _resumo(manifest) -> dict:
     }
 
 
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@servidor.tool(annotations=LEITURA)
 def resumo_semestre(semestre: str) -> dict:
     """Resumo do acervo do semestre: itens por tópico, pendências numeradas, anexos e textos."""
     return _resumo(_manifest(semestre))
 
 
-@servidor.tool()
+@servidor.tool(annotations=ESCRITA_LOCAL)
 def registrar_ata(semestre: str, assunto: str, data: str, remetente: str, id_mensagem: str = "",
                   texto: str = "", anexo_base64: str | None = None, anexo_nome: str | None = None) -> dict:
     """Registra uma ata/convocação encontrada no e-mail (pela integração de e-mail do host).
@@ -236,7 +251,7 @@ def registrar_ata(semestre: str, assunto: str, data: str, remetente: str, id_men
             "observacao": None if ata["anexo_original"] else "gerado PDF com o corpo do e-mail; pendência criada"}
 
 
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@servidor.tool(annotations=LEITURA)
 def pasta_entrada(semestre: str) -> dict:
     """Onde o docente coloca comprovantes próprios (PDF/JPG/PNG), uma subpasta por tópico (E8)."""
     raiz = entrada.pasta(semestre)
@@ -245,14 +260,14 @@ def pasta_entrada(semestre: str) -> dict:
             "dica": "Depois de adicionar arquivos, chame `montar_anexos` para incluí-los."}
 
 
-@servidor.tool()
+@servidor.tool(annotations=ESCRITA_LOCAL)
 def classificar_entrada(semestre: str, arquivo: str, topico: str) -> dict:
     """Move um arquivo solto da pasta de entrada para o tópico informado pelo docente."""
     destino = entrada.classificar(semestre, arquivo, topico)
     return {"movido_para": str(destino)}
 
 
-@servidor.tool()
+@servidor.tool(annotations=LEITURA_SUAP)
 def buscar_atas_gmail(semestre: str) -> dict:
     """BACKUP para hosts SEM integração de e-mail: busca atas no Gmail das contas autorizadas
     na CLI (`expeditto gmail-login`). Devolve candidatas numeradas; o docente escolhe quais registrar."""
@@ -264,7 +279,7 @@ def buscar_atas_gmail(semestre: str) -> dict:
                             "trecho": c.trecho[:200], "pdfs": c.anexos_pdf} for n, c in enumerate(cand, 1)]}
 
 
-@servidor.tool()
+@servidor.tool(annotations=COLETA)
 def registrar_atas_gmail(semestre: str, numeros: list[int]) -> dict:
     """Registra as candidatas escolhidas pelo docente (números de `buscar_atas_gmail`), baixando o PDF anexo."""
     registradas = gmail.registrar(semestre, numeros)
@@ -275,7 +290,7 @@ def registrar_atas_gmail(semestre: str, numeros: list[int]) -> dict:
     return {"registradas": [{"assunto": a["assunto"], "anexo_original": a["anexo_original"]} for a in registradas]}
 
 
-@servidor.tool()
+@servidor.tool(annotations=ESCRITA_LOCAL)
 def resolver_pendencia(semestre: str, numeros: list[int], decisao: str, justificativa: str | None = None) -> dict:
     """Registra a decisão DO DOCENTE sobre uma ou mais pendências (números vindos de `preparar_rit`/`resumo_semestre`).
     decisao: manter | remover_item | justificar (exige justificativa ditada pelo docente) | ignorar.
@@ -286,7 +301,7 @@ def resolver_pendencia(semestre: str, numeros: list[int], decisao: str, justific
     return {"atualizadas": [todas[n - 1] for n in numeros]}
 
 
-@servidor.tool()
+@servidor.tool(annotations=ESCRITA_LOCAL)
 def montar_anexos(semestre: str) -> dict:
     """Gera o PDF de anexo de cada tópico (capa + índice + comprovantes, até 10 MB)."""
     perfil = acervo.carregar_perfil()
@@ -294,7 +309,7 @@ def montar_anexos(semestre: str) -> dict:
     return _resumo(manifest)["anexos"] | {"pasta": str(acervo.pasta_semestre(semestre) / "anexos")}
 
 
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@servidor.tool(annotations=LEITURA)
 def contexto_topico(semestre: str, topico: str) -> dict:
     """Fatos de um tópico para redigir o Relato. topico: apoio_ensino, programas_projetos_ensino,
     orientacao_alunos, reunioes, pesquisa, extensao, gestao."""
@@ -303,7 +318,7 @@ def contexto_topico(semestre: str, topico: str) -> dict:
     return ctx
 
 
-@servidor.tool()
+@servidor.tool(annotations=ESCRITA_LOCAL)
 def salvar_texto(semestre: str, topico: str, html: str) -> dict:
     """Grava o Relato (HTML simples: p, ul, li, strong) de um tópico ou de 'alteracoes'."""
     if topico != "alteracoes":
@@ -314,21 +329,21 @@ def salvar_texto(semestre: str, topico: str, html: str) -> dict:
     return {"salvo": str(destino), "caracteres": len(html)}
 
 
-@servidor.tool()
+@servidor.tool(annotations=ESCRITA_LOCAL)
 def gerar_rascunhos(semestre: str, sobrescrever: bool = False) -> dict:
     """Gera rascunhos automáticos dos Relatos (não sobrescreve textos já revisados, salvo se pedido)."""
     gerados = textos.gerar_rascunhos(_manifest(semestre), sobrescrever=sobrescrever)
     return {"gerados": sorted(gerados)}
 
 
-@servidor.tool()
+@servidor.tool(annotations=ESCRITA_LOCAL)
 def gerar_alteracoes(semestre: str) -> dict:
     """Monta 'Alterações de Atividades' a partir das pendências justificadas pelo docente."""
     conteudo = pendencias.gerar_alteracoes(_manifest(semestre))
     return {"alteracoes": conteudo or "(nenhuma pendência justificada)"}
 
 
-@servidor.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@servidor.tool(annotations=LEITURA)
 def previa_preenchimento(semestre: str) -> dict:
     """O que será enviado ao formulário do RIT (textos e anexos) — mostre ao docente antes de salvar."""
     manifest = _manifest(semestre)
@@ -337,7 +352,7 @@ def previa_preenchimento(semestre: str) -> dict:
             "pendencias_sem_decisao": sum(1 for p in manifest.pendencias if not p.resolucao)}
 
 
-@servidor.tool(annotations=ToolAnnotations(destructiveHint=True, idempotentHint=True))
+@servidor.tool(annotations=SENSIVEL)
 def salvar_no_suap(semestre: str, confirmado: bool = False) -> dict:
     """Grava textos e anexos no formulário do RIT como RASCUNHO ("Salvar"). Nunca entrega.
     Só chame com confirmado=true depois que o docente aprovar a prévia explicitamente."""
@@ -350,6 +365,35 @@ def salvar_no_suap(semestre: str, confirmado: bool = False) -> dict:
             "anexos_no_formulario": len(r.anexos_depois),
             "cartao": roteiro.cartao(_manifest(semestre), salvo or {"url": r.url, "url_pdf": r.url_relatorio_pdf}),
             "instrucao": "Mostre o `cartao` ao docente exatamente como veio."}
+
+
+# -- versão -------------------------------------------------------------------------------------
+@servidor.tool(annotations=LEITURA_SUAP)
+def verificar_atualizacao() -> dict:
+    """Diz se há versão nova do Expeditto (consulta a última release; cache de um dia)."""
+    nova = atualizacao.verificar(forcar=True)
+    if not nova:
+        return {"atualizado": True, "versao": atualizacao.versao_instalada()}
+    return {"atualizado": False, **nova}
+
+
+@servidor.tool(annotations=SENSIVEL)
+def atualizar_expeditto(confirmado: bool = False) -> dict:
+    """Atualiza o Expeditto para a versão mais nova. Só chame com confirmado=true se o docente pedir.
+    Depois, o app de IA precisa ser reiniciado (ou o Expeditto reconectado) para usar a versão nova."""
+    nova = atualizacao.verificar(forcar=True)
+    if not nova:
+        return {"atualizado": True, "versao": atualizacao.versao_instalada()}
+    if not confirmado:
+        return {"atualizado": False, "motivo": "confirmação do docente necessária (confirmado=true)", **nova}
+    # No Windows o servidor trava os próprios arquivos: a reinstalação espera este processo fechar.
+    resultado = atualizacao.atualizar(nova["disponivel"], aguardar_pid=os.getpid())
+    if resultado.get("agendada"):
+        resultado["proximo_passo"] = ("Feche o app de IA por completo (inclusive o ícone perto do relógio), espere "
+                                      "1 minuto e abra de novo. A atualização roda assim que ele fechar.")
+    else:
+        resultado["proximo_passo"] = "Reinicie o app de IA (ou reconecte o Expeditto) para usar a versão nova."
+    return resultado
 
 
 def main() -> None:

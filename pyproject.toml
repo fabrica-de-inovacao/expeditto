@@ -1,6 +1,6 @@
 [project]
 name = "expeditto"
-version = "0.2.0"
+version = "0.3.0"
 description = "Expeditto: seu segundo expediente, resolvido. Assistente de burocracia docente (RIT do SUAP IFMA), com CLI e servidor MCP."
 readme = "README.md"
 license = "AGPL-3.0-or-later"

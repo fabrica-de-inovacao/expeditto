@@ -102,15 +102,7 @@ def apagar_dados() -> list[Resultado]:
     return resultados
 
 
-# -- atualização ----------------------------------------------------------------------------------
-def comando_atualizar() -> list[str] | None:
-    if modo_instalacao() != "uv-tool":
-        return None
-    uv = shutil.which("uv")
-    # --reinstall-package: busca de novo mesmo quando a origem é o .zip do GitHub (URL fixa, versão nova)
-    return [uv, "tool", "upgrade", PACOTE, "--reinstall-package", PACOTE] if uv else None
-
-
+# -- remoção ----------------------------------------------------------------------------------------
 def comando_remover_programa() -> str:
     return {"uv-tool": f"uv tool uninstall {PACOTE}",
             "desenvolvimento": "apague a pasta do código-fonte"}.get(modo_instalacao(), f"pip uninstall {PACOTE}")

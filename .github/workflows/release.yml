@@ -1,0 +1,39 @@
+# Publica uma release quando uma tag vX.Y.Z é enviada. A release é o que dispara o aviso
+# "há uma versão nova" no Expeditto de quem já instalou (CLI, interface e MCP).
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Versão da tag = versão do pyproject
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          versao="$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)"
+          if [ "$tag" != "$versao" ]; then
+            echo "A tag $GITHUB_REF_NAME não bate com version = $versao no pyproject.toml"; exit 1
+          fi
+
+      - name: Testes
+        run: uv run pytest -q
+        env:
+          EXPEDITTO_SEM_ATUALIZACAO: "1"
+          PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+
+      - name: Criar a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "Expeditto $GITHUB_REF_NAME" --generate-notes --verify-tag

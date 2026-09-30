@@ -8,8 +8,19 @@
 # login no SUAP e diagnóstico). Não usa sudo.
 set -eu
 
-# Até a publicação no PyPI, a origem é o código do GitHub (branch main).
-ORIGEM="${EXPEDITTO_ORIGEM:-expeditto @ https://github.com/vnschneider/expeditto/archive/refs/heads/main.zip}"
+# Até a publicação no PyPI, a origem é o GitHub: a última release (ou a branch main, se ainda não houver).
+REPO="https://github.com/vnschneider/expeditto"
+if [ -n "${EXPEDITTO_ORIGEM:-}" ]; then
+    ORIGEM="$EXPEDITTO_ORIGEM"
+else
+    TAG="$(curl -fsSL https://api.github.com/repos/vnschneider/expeditto/releases/latest 2>/dev/null \
+        | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)" || TAG=""
+    if [ -n "$TAG" ]; then
+        ORIGEM="expeditto @ $REPO/archive/refs/tags/$TAG.zip"
+    else
+        ORIGEM="expeditto @ $REPO/archive/refs/heads/main.zip"
+    fi
+fi
 
 diga() { printf '  \033[33m%s\033[0m\n' "$1"; }
 

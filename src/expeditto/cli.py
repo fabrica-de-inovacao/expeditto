@@ -16,12 +16,21 @@ app = typer.Typer(help="Expeditto · seu segundo expediente, resolvido. Prepara 
                   invoke_without_command=True)
 
 
+def _avisar_atualizacao() -> None:
+    from expeditto import atualizacao
+
+    if nova := atualizacao.verificar():
+        typer.secho(f"{nova['mensagem']} Para atualizar: expeditto atualizar", fg="yellow", err=True)
+
+
 @app.callback()
 def inicio(ctx: typer.Context,
            alto_contraste: bool = typer.Option(False, "--alto-contraste", help="Cores de alto contraste."),
            semestre: str = typer.Option(None, "--semestre", help="Abre direto no RIT deste semestre (AAAA.P)."),
            sem_tui: bool = typer.Option(False, "--sem-tui", help="Só mostra a ajuda, sem a interface visual.")) -> None:
     if ctx.invoked_subcommand is not None:
+        if ctx.invoked_subcommand not in ("mcp", "atualizar", "doctor"):
+            _avisar_atualizacao()
         return
     import sys
 
