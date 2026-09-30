@@ -13,13 +13,13 @@ _MAX_DIAS_SEMESTRAL = 220
 def parse_diarios(dados: list[dict], codigo: str) -> list[Evidencia]:
     evidencias = []
     for d in dados:
-        aulas = d.get("aulas") or []
         evidencias.append(Evidencia(
             id=f"suap_api:diario:{d['id']}",
             fonte="suap_api",
             tipo=TipoEvidencia.DIARIO,
             titulo=d.get("componente_curricular", "Diário"),
-            descricao=f"{len(aulas)} aulas registradas",
+            # a API devolve 0 aulas mesmo com registro parcial; o % ministrado vem da declaração de docência
+            descricao="",
             papel="Professor(a)",
             inicio=parse_data(d.get("data_inicio")),
             fim=parse_data(d.get("data_fim")),

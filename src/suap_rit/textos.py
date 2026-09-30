@@ -81,12 +81,22 @@ def contexto_topico(manifest: Manifest, topico: Topico) -> dict:
         "topico": topico.rotulo,
         "ch_prevista_no_pit": plano.quadro_resumo.get(topico.rotulo.upper()) if plano else None,
         "atividades_previstas_no_pit": atividades_do_pit(manifest, topico),
+        "contagens": _contagens(itens),
         "itens": itens,
         "instrucoes": ("Redija o 'Relato' deste tópico em português formal: um parágrafo-síntese e depois uma "
                        "lista dos itens (título, papel, período e 'Doc. N do anexo'). Use apenas os fatos "
-                       "fornecidos; não invente atividades, números ou resultados. HTML simples: <p>, <ul>, "
+                       "fornecidos; não invente atividades, números ou resultados. Para quantidades, use "
+                       "EXATAMENTE os números de 'contagens' (não conte você mesmo). HTML simples: <p>, <ul>, "
                        "<li>, <strong>."),
     }
+
+
+def _contagens(itens: list[dict]) -> dict:
+    por_tipo = Counter(i["tipo"] for i in itens)
+    por_papel = Counter(f"{i['tipo']}|{i['papel']}" for i in itens if i["papel"])
+    return {"total_itens": len(itens), "por_tipo": dict(por_tipo),
+            "por_tipo_e_papel": {k: v for k, v in por_papel.items()},
+            "documentos_no_anexo": len({i["comprovante_no_anexo"] for i in itens if i["comprovante_no_anexo"]})}
 
 
 def _item_html(i: dict) -> str:

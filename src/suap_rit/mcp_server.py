@@ -7,6 +7,7 @@ Nada é impresso em stdout (é o canal do protocolo).
 
 from __future__ import annotations
 
+import re
 import threading
 import traceback
 import uuid
@@ -141,15 +142,31 @@ def coletar_semestre(semestre: str) -> dict:
     return _iniciar(f"coleta {semestre}", alvo)
 
 
+_LATTES = re.compile(r"Lattes \((?P<cat>[^,]+), (?P<ano>\d{4})\): (?P<tit>.+?) — sem comprovante")
+
+
+def _pendencia_resumida(n: int, p) -> dict:
+    if p.tipo == "lattes_sem_comprovante" and (m := _LATTES.search(p.mensagem)):
+        return {"numero": n, "tipo": p.tipo, "categoria": m["cat"], "titulo": m["tit"], "decisao": p.resolucao}
+    return {"numero": n, "tipo": p.tipo, "mensagem": p.mensagem, "decisao": p.resolucao}
+
+
 def _resumo(manifest) -> dict:
     por_topico = Counter(t.value for i in manifest.itens for t in i.topicos)
+    lattes = Counter(m["cat"] for p in manifest.pendencias
+                     if p.tipo == "lattes_sem_comprovante" and not p.resolucao and (m := _LATTES.search(p.mensagem)))
     return {
         "semestre": manifest.semestre.codigo,
         "periodo": f"{manifest.semestre.inicio} a {manifest.semestre.fim} ({manifest.semestre.fonte_datas})",
         "estado_plano": manifest.plano.estado.value if manifest.plano else None,
         "itens_por_topico": {t.value: por_topico.get(t.value, 0) for t in Topico},
-        "pendencias": [{"numero": n, "tipo": p.tipo, "mensagem": p.mensagem, "decisao": p.resolucao}
-                       for n, p in enumerate(manifest.pendencias, 1)],
+        "pendencias_por_tipo": dict(Counter(p.tipo for p in manifest.pendencias if not p.resolucao)),
+        "lattes_sem_comprovante_por_categoria": dict(lattes),
+        "orientacao_lattes": ("Itens do Lattes do ano sem comprovante no SUAP (o Lattes só informa o ano). "
+                              "Pergunte ao docente, por categoria, quais são deste semestre: com comprovante → "
+                              "pasta de entrada + 'manter'; fora do semestre ou sem comprovante → 'ignorar'.")
+        if lattes else None,
+        "pendencias": [_pendencia_resumida(n, p) for n, p in enumerate(manifest.pendencias, 1)],
         "anexos": {k: {"documentos": a.documentos, "paginas": a.paginas, "mb": round(a.bytes / 1048576, 2)}
                    for k, a in manifest.anexos.items()},
         "textos_prontos": [t.value for t in Topico if textos.carregar(manifest.semestre.codigo, t.value)],

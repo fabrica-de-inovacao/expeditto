@@ -313,7 +313,7 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
 
     atas.aplicar(manifest)  # atas registradas pelo host (e-mail) sobrevivem a novas coletas
     entrada.aplicar(manifest)  # comprovantes colocados pelo docente na pasta de entrada (E8)
-    manifest.pendencias += lattes.lacunas(manifest, itens_lattes)  # E7
+    manifest.pendencias += lattes.lacunas(manifest, itens_lattes, evidencias)  # E7 (compara com tudo)
     decisoes.aplicar(manifest)  # decisões já tomadas pelo docente não são perguntadas de novo
     acervo.salvar_manifest(manifest)
     return manifest

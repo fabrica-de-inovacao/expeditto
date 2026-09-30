@@ -12,7 +12,7 @@ import unicodedata
 from dataclasses import dataclass
 
 from suap_rit import html as h
-from suap_rit.models import Manifest, Pendencia, Topico
+from suap_rit.models import Evidencia, Manifest, Pendencia, Topico
 
 # (seção h4 contém, subseção h2 começa com) → (categoria, tópico). Seção vazia = qualquer.
 _MAPA = [
@@ -75,6 +75,10 @@ def titulo_do_item(texto: str) -> str:
     Orientações vêm como "Aluno. Título. Início: ..." → fica o título."""
     if " . " in texto:  # separador ABNT entre autores e título
         resto = texto.split(" . ", 1)[1]
+        if resto.lower().startswith("participação em banca de") and ". " in resto:
+            resto = resto.split(". ", 1)[1]  # "Participação em banca de Aluno. Título. ..."
+    elif ";" in texto and not re.search(r"In[íi]cio:", texto):
+        resto = texto.rsplit("; ", 1)[-1]  # "AUTOR; AUTOR; Título. 2025."
     elif re.search(r"In[íi]cio:|Orienta", texto) and ". " in texto:
         resto = texto.split(". ", 1)[1]
     else:
@@ -93,9 +97,12 @@ def _coberto(item: ItemLattes, titulos_suap: list[set[str]]) -> bool:
     return any(t and len(t & alvo) / len(t) >= 0.7 for t in titulos_suap)
 
 
-def lacunas(manifest: Manifest, itens: list[ItemLattes]) -> list[Pendencia]:
+def lacunas(manifest: Manifest, itens: list[ItemLattes], todas: list[Evidencia] | None = None) -> list[Pendencia]:
+    """`todas`: todas as evidências coletadas no SUAP (de qualquer semestre). O Lattes só informa o
+    ano; uma banca de 2025.1 não é lacuna em 2025.2 se o SUAP já a registra."""
     ano = manifest.semestre.ano
-    titulos = [_tokens(e.titulo) for e in manifest.evidencias.values() if len(_tokens(e.titulo)) >= 3]
+    fontes = list(manifest.evidencias.values()) + list(todas or [])
+    titulos = [_tokens(e.titulo) for e in fontes if len(_tokens(e.titulo)) >= 3]
     pendencias = []
     for item in itens:
         do_ano = item.ano == ano or (item.andamento and item.ano is not None and item.ano <= ano)

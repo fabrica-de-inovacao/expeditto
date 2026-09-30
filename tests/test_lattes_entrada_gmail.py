@@ -99,3 +99,21 @@ def test_gmail_buscar_e_registrar(tmp_path, monkeypatch):
 ])
 def test_titulo_sem_autores(texto, titulo):
     assert lattes.titulo_do_item(texto) == titulo
+
+
+@pytest.mark.parametrize("texto,titulo", [
+    ("COSTA, E. ; SILVA, F. . Participação em banca de Fulana Souza. Sistema de chamados web. 2025. TCC",
+     "Sistema de chamados web"),
+    ("SILVA, F; COSTA, A; PEREIRA, G. V.; Meninas em Rede: Desafio de Programação. 2025.",
+     "Meninas em Rede: Desafio de Programação"),
+])
+def test_titulos_de_banca_e_evento(texto, titulo):
+    assert lattes.titulo_do_item(texto) == titulo
+
+
+def test_lacuna_ignora_item_ja_registrado_em_outro_semestre():
+    itens = [lattes.ItemLattes("participação em banca", Topico.ORIENTACAO_ALUNOS,
+                               "X . Participação em banca de A. Sistema de gestão de chamados web. 2025.", 2025, False)]
+    m = Manifest(semestre=Semestre(ano=2025, periodo=2), gerado_em=datetime.now())
+    de_2025_1 = Evidencia(id="b", fonte="t", tipo=TipoEvidencia.BANCA, titulo="Sistema de gestão de chamados web")
+    assert lattes.lacunas(m, itens) and not lattes.lacunas(m, itens, [de_2025_1])

@@ -227,3 +227,17 @@ def test_projeto_que_comeca_nas_ferias_e_do_semestre_seguinte():
     assert not semestres.pertence(projeto, "2025.1", j["2025.1"], letivo=letivo)
     banca = Evidencia(id="b", fonte="t", tipo=TipoEvidencia.BANCA, titulo="B", data_evento=date(2025, 7, 10))
     assert semestres.pertence(banca, "2025.1", j["2025.1"], letivo=letivo)  # evento pontual: janela
+
+
+def test_portaria_papel_como_coordenadora():
+    d = portaria.parse("RESOLVE: Art. 1º - Designar a servidora Fulana de Tal , matrícula 1234567, para atuar "
+                       "como Coordenadora do Projeto Aurora. Art. 2º vigência de 07/11/2025 a 07/11/2026.",
+                       nome="Fulana de Tal", matricula="1234567")
+    assert d.papel == "Coordenadora"
+
+
+def test_ata_classificada_pelo_assunto_e_departamento_nao_pelo_corpo():
+    ev = Evidencia(id="a", fonte="t", tipo=TipoEvidencia.ATA, titulo="Reunião com bolsistas premiados",
+                   descricao="E-mail do Departamento de Pesquisa, Pós-Graduação, Inovação e Extensão",
+                   extras={"texto": "Prezados coordenadores e bolsistas..."})
+    assert classificar(ev).topicos == [Topico.PESQUISA]

@@ -94,6 +94,10 @@ def _papel(corpo: str, nome: str | None, matricula: str | None) -> str | None:
     depois = corpo[posicao:posicao + 400]
     if m := re.search(r"(?:fun[çc][ãa]o|cargo)\s+de\s+(.{4,60}?)(?=\s+(?:do|da|de|no|na)\s|[,.;]|$)", depois, re.I):
         return re.sub(r"\s+", " ", m[1]).strip().capitalize()
+    # "... para atuar como Coordenadora do Projeto X" / "como membro titular"
+    if m := re.search(r"\bcomo\s+((?:vice[- ])?coordenador\w*|presidente|secret[áa]ri\w+|supervisor\w*|"
+                      r"orientador\w*|avaliador\w*|membro\w*)", depois, re.I):
+        return m[1].capitalize()
     anterior = corpo[:posicao].lower()
     melhor, melhor_pos = None, -1
     for rotulo, padrao in _PAPEIS:

@@ -68,7 +68,7 @@ def classificar(ev: Evidencia) -> Classificacao:
             return Classificacao([T.ORIENTACAO_ALUNOS, T.PESQUISA], "orientação de bolsista em pesquisa (P1)")
         return Classificacao([T.ORIENTACAO_ALUNOS], "orientação de discente em projeto (D12)")
     if ev.tipo == TipoEvidencia.ATA:
-        alvo = f"{ev.titulo} {ev.extras.get('texto', '')}".lower()
+        alvo = f"{ev.titulo} {ev.descricao}".lower()  # assunto + remetente/departamento; o corpo gera ruído
         for padrao, topicos, motivo in _REGRAS_PORTARIA:
             if re.search(padrao, alvo):
                 return Classificacao(list(topicos), f"ata por e-mail: {motivo}")
