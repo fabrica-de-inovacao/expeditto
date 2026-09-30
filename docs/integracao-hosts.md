@@ -1,6 +1,6 @@
 # Integração com os hosts (MCP local, stdio) — D47
 
-O mesmo servidor atende todos os hosts: `uv --directory <REPO> run suap-rit mcp`.
+O mesmo servidor atende todos os hosts: `uv --directory <REPO> run expeditto mcp`.
 Troque `<REPO>` pelo caminho do repositório (ex.: `C:\Users\<voce>\Documents\GitHub\suap-cli-mcp`).
 
 Pré-requisitos (uma vez): [uv](https://docs.astral.sh/uv/) instalado, `uv sync` no repositório e Google Chrome instalado. Sem Chrome, rode `uv run playwright install chromium`.
@@ -11,9 +11,9 @@ Arquivo `%APPDATA%\Claude\claude_desktop_config.json` (Windows) ou `~/Library/Ap
 ```json
 {
   "mcpServers": {
-    "suap-rit": {
+    "expeditto": {
       "command": "uv",
-      "args": ["--directory", "<REPO>", "run", "suap-rit", "mcp"]
+      "args": ["--directory", "<REPO>", "run", "expeditto", "mcp"]
     }
   }
 }
@@ -22,18 +22,18 @@ Reinicie o Claude Desktop. O conector **Gmail** do Claude (Configurações › C
 
 ## Claude Code
 ```bash
-claude mcp add suap-rit -s user -- uv --directory "<REPO>" run suap-rit mcp
+claude mcp add expeditto -s user -- uv --directory "<REPO>" run expeditto mcp
 ```
 
 ## OpenAI Codex (CLI, extensão de IDE e app desktop)
 ```bash
-codex mcp add suap-rit -- uv --directory "<REPO>" run suap-rit mcp
+codex mcp add expeditto -- uv --directory "<REPO>" run expeditto mcp
 ```
 ou em `~/.codex/config.toml`:
 ```toml
-[mcp_servers.suap-rit]
+[mcp_servers.expeditto]
 command = "uv"
-args = ["--directory", "<REPO>", "run", "suap-rit", "mcp"]
+args = ["--directory", "<REPO>", "run", "expeditto", "mcp"]
 ```
 
 ## Gemini CLI / Antigravity CLI
@@ -41,9 +41,9 @@ args = ["--directory", "<REPO>", "run", "suap-rit", "mcp"]
 ```json
 {
   "mcpServers": {
-    "suap-rit": {
+    "expeditto": {
       "command": "uv",
-      "args": ["--directory", "<REPO>", "run", "suap-rit", "mcp"],
+      "args": ["--directory", "<REPO>", "run", "expeditto", "mcp"],
       "timeout": 600000
     }
   }
@@ -54,7 +54,7 @@ args = ["--directory", "<REPO>", "run", "suap-rit", "mcp"]
 Peça ao assistente, por exemplo: *"Prepare meu RIT de 2025.1."* As instruções do servidor conduzem o fluxo:
 login → coleta → atas do e-mail → pendências → anexos → relatos → prévia → **Salvar** (com a sua confirmação) → links para conferir e entregar.
 
-Hosts sem integração de e-mail (CLIs): autorize o Gmail uma vez com `uv run suap-rit gmail-login` (repita para a conta acadêmica); o assistente usa `buscar_atas_gmail` / `registrar_atas_gmail`. Requer `~/suap-rit/google_client.json` (credencial OAuth "Desktop app" do projeto Google Cloud da ferramenta). Alternativa: PDFs na pasta de entrada (`pasta_entrada`).
+Hosts sem integração de e-mail (CLIs): autorize o Gmail uma vez com `uv run expeditto gmail-login` (repita para a conta acadêmica); o assistente usa `buscar_atas_gmail` / `registrar_atas_gmail`. Requer `~/expeditto/google_client.json` (credencial OAuth "Desktop app" do projeto Google Cloud da ferramenta). Alternativa: PDFs na pasta de entrada (`pasta_entrada`).
 
 ## Ferramentas expostas
 `status_sessao`, `login`, `status_tarefa`, `listar_semestres`, `coletar_semestre`, `resumo_semestre`, `registrar_ata`,

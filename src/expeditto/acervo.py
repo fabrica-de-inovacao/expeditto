@@ -8,8 +8,8 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 
-from suap_rit import config
-from suap_rit.models import Manifest, Perfil
+from expeditto import config
+from expeditto.models import Manifest, Perfil
 
 
 def _chave_arquivo(chave: str) -> str:

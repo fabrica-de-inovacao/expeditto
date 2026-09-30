@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 
-from suap_rit import html as h
-from suap_rit.client import SuapClient
-from suap_rit.models import EstadoPlano, PlanoSemestre
+from expeditto import html as h
+from expeditto.client import SuapClient
+from expeditto.models import EstadoPlano, PlanoSemestre
 
 _ACOES = {
     "cadastrar": "cadastrar_plano_individual_trabalho",

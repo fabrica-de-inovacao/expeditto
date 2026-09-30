@@ -11,15 +11,15 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-from suap_rit import acervo, semestres
-from suap_rit.acervo import Cache
-from suap_rit.classificar import classificar
-from suap_rit.html import parse_data
-from suap_rit.client import SuapClient
-from suap_rit.models import (
+from expeditto import acervo, semestres
+from expeditto.acervo import Cache
+from expeditto.classificar import classificar
+from expeditto.html import parse_data
+from expeditto.client import SuapClient
+from expeditto.models import (
     EstadoPlano, Evidencia, ItemAcervo, Manifest, Pendencia, Perfil, PlanoSemestre, Semestre, TipoEvidencia, Topico,
 )
-from suap_rit.suap import diarios, ensino, perfil as perfil_mod, planos, servidor
+from expeditto.suap import diarios, ensino, perfil as perfil_mod, planos, servidor
 
 # Legenda/categoria das atividades do PIT → tópico do RIT (para detectar divergências, D6).
 CATEGORIAS_PIT = [
@@ -239,7 +239,7 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
     itens_lattes = []
     if perfil.lattes_suap:
         progresso("Lattes importado no SUAP (detector de lacunas)")
-        from suap_rit import lattes
+        from expeditto import lattes
         itens_lattes = lattes.parse(client.html(perfil.lattes_suap))
     _limitar_portarias_por_funcao(evidencias)
     _encerrar_substituidas(evidencias)
@@ -309,7 +309,7 @@ def coletar_semestre(client: SuapClient, perfil: Perfil, codigo: str, baixar: bo
         itens=itens,
         pendencias=pendencias,
     )
-    from suap_rit import atas, entrada, lattes, pendencias as decisoes  # import tardio: evita ciclo com textos
+    from expeditto import atas, entrada, lattes, pendencias as decisoes  # import tardio: evita ciclo com textos
 
     atas.aplicar(manifest)  # atas registradas pelo host (e-mail) sobrevivem a novas coletas
     entrada.aplicar(manifest)  # comprovantes colocados pelo docente na pasta de entrada (E8)

@@ -14,10 +14,10 @@ from datetime import date
 
 from fpdf import FPDF
 
-from suap_rit import acervo, config
-from suap_rit.anexos import _latin1
-from suap_rit.html import parse_data
-from suap_rit.models import Evidencia, ItemAcervo, Manifest, Pendencia, TipoEvidencia
+from expeditto import acervo, config
+from expeditto.anexos import _latin1
+from expeditto.html import parse_data
+from expeditto.models import Evidencia, ItemAcervo, Manifest, Pendencia, TipoEvidencia
 
 
 def _arquivo(codigo: str):
@@ -84,7 +84,7 @@ def evidencia(ata: dict) -> Evidencia:
 
 def aplicar(manifest: Manifest) -> None:
     """Inclui as atas registradas no manifest (idempotente)."""
-    from suap_rit.classificar import classificar
+    from expeditto.classificar import classificar
 
     codigo = manifest.semestre.codigo
     for ata in listar(codigo):

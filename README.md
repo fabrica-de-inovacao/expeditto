@@ -1,6 +1,10 @@
-# suap-rit
+# Expeditto
 
-Assistente do **Relatório Individual de Trabalho (RIT)** do SUAP IFMA. Faz o garimpo das evidências do docente no SUAP, organiza tudo por semestre e por tópico do RIT e baixa os comprovantes em PDF. A entrega do RIT continua sendo feita pelo docente.
+> **Seu segundo expediente, resolvido.** Assistente da burocracia docente. Hoje ele prepara o **Relatório Individual de Trabalho (RIT)** do SUAP IFMA: garimpa seus comprovantes, organiza por semestre e tópico, redige os relatos e deixa o rascunho salvo no SUAP para você conferir e entregar.
+
+Ferramenta **independente e não oficial**. Roda no seu computador, com a sua sessão do SUAP, e **nunca entrega o relatório por você**. Licença [AGPL-3.0](LICENSE).
+
+Funciona pelo terminal (`expeditto`) e dentro do seu assistente de IA (servidor MCP para Claude Desktop, Claude Code, Codex e Gemini/Antigravity CLI).
 
 - Descoberta e visão do produto: [`docs/discovery.md`](docs/discovery.md)
 - Rotas e telas do SUAP mapeadas: [`docs/mapa-suap-ifma.md`](docs/mapa-suap-ifma.md)
@@ -10,20 +14,20 @@ Assistente do **Relatório Individual de Trabalho (RIT)** do SUAP IFMA. Faz o ga
 
 ```bash
 uv sync
-uv run suap-rit login            # janela do SUAP para login (CAPTCHA/Gov.br); fecha sozinha
-uv run suap-rit semestres        # estado do PIT/RIT por semestre + links
-uv run suap-rit coletar 2025.1   # coleta, classifica e baixa comprovantes
-uv run suap-rit status 2025.1    # resumo por tópico + pendências
-uv run suap-rit montar 2025.1    # 1 PDF por tópico (capa + índice), ≤ 10 MB
-uv run suap-rit textos 2025.1    # rascunhos dos Relatos (HTML)
-uv run suap-rit entrada 2025.1   # onde colocar comprovantes próprios
-uv run suap-rit preencher 2025.1 [--salvar]   # prévia; com --salvar grava rascunho (nunca entrega)
-uv run suap-rit gmail-login / gmail-atas 2025.1   # backup de atas por e-mail
-uv run suap-rit mcp              # servidor MCP (ver docs/integracao-hosts.md)
-uv run suap-rit logout           # apaga a sessão do keyring e o perfil do navegador
+uv run expeditto login            # janela do SUAP para login (CAPTCHA/Gov.br); fecha sozinha
+uv run expeditto semestres        # estado do PIT/RIT por semestre + links
+uv run expeditto coletar 2025.1   # coleta, classifica e baixa comprovantes
+uv run expeditto status 2025.1    # resumo por tópico + pendências
+uv run expeditto montar 2025.1    # 1 PDF por tópico (capa + índice), ≤ 10 MB
+uv run expeditto textos 2025.1    # rascunhos dos Relatos (HTML)
+uv run expeditto entrada 2025.1   # onde colocar comprovantes próprios
+uv run expeditto preencher 2025.1 [--salvar]   # prévia; com --salvar grava rascunho (nunca entrega)
+uv run expeditto gmail-login / gmail-atas 2025.1   # backup de atas por e-mail
+uv run expeditto mcp              # servidor MCP (ver docs/integracao-hosts.md)
+uv run expeditto logout           # apaga a sessão do keyring e o perfil do navegador
 ```
 
-O acervo fica em `~/suap-rit/` (ou em `SUAP_RIT_HOME`):
+O acervo fica em `~/expeditto/` (ou em `EXPEDITTO_HOME`):
 
 ```
 perfil.json                      # contexto do docente (allowlist, sem dados sensíveis)

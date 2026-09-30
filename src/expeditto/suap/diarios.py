@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from suap_rit.client import SuapClient
-from suap_rit.html import parse_data
-from suap_rit.models import Evidencia, Semestre, TipoEvidencia
+from expeditto.client import SuapClient
+from expeditto.html import parse_data
+from expeditto.models import Evidencia, Semestre, TipoEvidencia
 
 # Diários com mais dias que isto são anuais (técnico integrado) e não definem o semestre.
 _MAX_DIAS_SEMESTRAL = 220

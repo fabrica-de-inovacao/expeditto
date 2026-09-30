@@ -9,8 +9,8 @@ from __future__ import annotations
 import html
 import json
 
-from suap_rit import acervo, textos
-from suap_rit.models import Manifest
+from expeditto import acervo, textos
+from expeditto.models import Manifest
 
 DECISOES = ("manter", "remover_item", "justificar", "ignorar")
 

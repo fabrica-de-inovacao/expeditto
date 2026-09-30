@@ -5,8 +5,8 @@ from datetime import date, datetime
 from fpdf import FPDF
 from pypdf import PdfReader
 
-from suap_rit import anexos
-from suap_rit.models import Evidencia, ItemAcervo, Manifest, Semestre, TipoEvidencia, Topico
+from expeditto import anexos
+from expeditto.models import Evidencia, ItemAcervo, Manifest, Semestre, TipoEvidencia, Topico
 
 
 def _pdf(caminho, paginas=1):
@@ -19,7 +19,7 @@ def _pdf(caminho, paginas=1):
 
 
 def test_montar_topico_agrupa_documento_coletivo_e_ordena(tmp_path, monkeypatch):
-    monkeypatch.setenv("SUAP_RIT_HOME", str(tmp_path))
+    monkeypatch.setenv("EXPEDITTO_HOME", str(tmp_path))
     (tmp_path / "_cache").mkdir()
     _pdf(tmp_path / "_cache" / "estagios.pdf", paginas=2)
     _pdf(tmp_path / "_cache" / "banca.pdf")
@@ -48,6 +48,6 @@ def test_montar_topico_agrupa_documento_coletivo_e_ordena(tmp_path, monkeypatch)
 
 
 def test_topico_sem_comprovante_nao_gera_anexo(tmp_path, monkeypatch):
-    monkeypatch.setenv("SUAP_RIT_HOME", str(tmp_path))
+    monkeypatch.setenv("EXPEDITTO_HOME", str(tmp_path))
     manifest = Manifest(semestre=Semestre(ano=2025, periodo=1), gerado_em=datetime.now())
     assert anexos.montar_topico(manifest, Topico.GESTAO, "Fulana") == (None, [])

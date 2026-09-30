@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from suap_rit.models import Evidencia, TipoEvidencia, Topico
+from expeditto.models import Evidencia, TipoEvidencia, Topico
 
 T = Topico
 

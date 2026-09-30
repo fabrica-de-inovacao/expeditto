@@ -15,10 +15,10 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from suap_rit import acervo
-from suap_rit.anexos import _periodo, documentos_do_topico
-from suap_rit.coleta import CATEGORIAS_PIT
-from suap_rit.models import Manifest, TipoEvidencia, Topico
+from expeditto import acervo
+from expeditto.anexos import _periodo, documentos_do_topico
+from expeditto.coleta import CATEGORIAS_PIT
+from expeditto.models import Manifest, TipoEvidencia, Topico
 
 _ROTULO_TIPO = {
     TipoEvidencia.DIARIO: ("componente curricular ministrado", "componentes curriculares ministrados"),

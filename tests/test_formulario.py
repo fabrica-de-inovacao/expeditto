@@ -5,9 +5,9 @@ from pathlib import Path
 import httpx
 import pytest
 
-from suap_rit import formulario
-from suap_rit.client import RotaNaoPermitida, SuapClient
-from suap_rit.models import Topico
+from expeditto import formulario
+from expeditto.client import RotaNaoPermitida, SuapClient
+from expeditto.models import Topico
 
 CAMINHO = "/pit_rit_v2/preencher_relatorio_individual_trabalho/42/"
 

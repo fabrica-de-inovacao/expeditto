@@ -2,9 +2,9 @@
 
 from datetime import date
 
-from suap_rit import html as h
-from suap_rit.models import EstadoPlano, Perfil, TipoEvidencia
-from suap_rit.suap import ensino, perfil, planos, servidor
+from expeditto import html as h
+from expeditto.models import EstadoPlano, Perfil, TipoEvidencia
+from expeditto.suap import ensino, perfil, planos, servidor
 
 
 def _acc(titulo: str, corpo: str) -> str:

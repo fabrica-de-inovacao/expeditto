@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from suap_rit.models import Evidencia, Semestre
+from expeditto.models import Evidencia, Semestre
 
 
 def estimar(codigo: str) -> Semestre:

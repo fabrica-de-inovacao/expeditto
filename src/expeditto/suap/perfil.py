@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 
-from suap_rit import html as h
-from suap_rit.client import SuapClient
-from suap_rit.models import Perfil
+from expeditto import html as h
+from expeditto.client import SuapClient
+from expeditto.models import Perfil
 
 # Rótulo no SUAP → campo do Perfil. Qualquer outro rótulo é ignorado na leitura.
 _ALLOWLIST = {

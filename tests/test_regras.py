@@ -5,11 +5,11 @@ from datetime import date
 import httpx
 import pytest
 
-from suap_rit import semestres
-from suap_rit.classificar import classificar
-from suap_rit.client import RotaNaoPermitida, SessaoExpirada, SuapClient
-from suap_rit.models import Evidencia, Semestre, TipoEvidencia, Topico
-from suap_rit.suap import portaria
+from expeditto import semestres
+from expeditto.classificar import classificar
+from expeditto.client import RotaNaoPermitida, SessaoExpirada, SuapClient
+from expeditto.models import Evidencia, Semestre, TipoEvidencia, Topico
+from expeditto.suap import portaria
 
 
 # -- portarias -------------------------------------------------------------------
@@ -152,7 +152,7 @@ def test_pdf_assincrono(monkeypatch):
             return httpx.Response(200, content=b"%PDF-1.4 conteudo")
         return httpx.Response(404)
 
-    monkeypatch.setattr("suap_rit.client.time.sleep", lambda _: None)
+    monkeypatch.setattr("expeditto.client.time.sleep", lambda _: None)
     c = SuapClient({}, transport=httpx.MockTransport(handler), base_url="https://suap.test")
     assert c.pdf_assincrono("/documento_eletronico/imprimir_documento_pdf/1/carta/").startswith(b"%PDF")
     assert chamadas["progresso"] == 2
@@ -160,7 +160,7 @@ def test_pdf_assincrono(monkeypatch):
 
 # -- substituição de portarias ---------------------------------------------------
 def test_nova_composicao_do_nde_encerra_a_anterior():
-    from suap_rit.coleta import _encerrar_substituidas
+    from expeditto.coleta import _encerrar_substituidas
 
     antiga = Evidencia(id="a", fonte="t", tipo=TipoEvidencia.PORTARIA, titulo="P 65/2023",
                        descricao="Alterar a composição do Núcleo Docente Estruturante do Curso de Sistemas de Informação",
@@ -184,7 +184,7 @@ def test_nova_composicao_do_nde_encerra_a_anterior():
     "nde do curso bacharelado em sistemas de informação, ",
 ])
 def test_nome_do_curso_normalizado(texto):
-    from suap_rit.coleta import _curso
+    from expeditto.coleta import _curso
 
     assert _curso(texto) == "sistemas-de-informacao"
 
@@ -198,7 +198,7 @@ def test_orientacao_em_projeto_de_pesquisa_vai_para_dois_topicos():
 
 
 def test_estagio_usa_declaracao_do_ano_do_semestre():
-    from suap_rit.coleta import _declaracao_de_estagio
+    from expeditto.coleta import _declaracao_de_estagio
 
     ev = Evidencia(id="e", fonte="t", tipo=TipoEvidencia.ESTAGIO, titulo="E",
                    extras={"declaracao_2025": "/d/2025/", "declaracao_2024": "/d/2024/"})
@@ -214,7 +214,7 @@ def test_portaria_de_designacao_individual_pega_a_funcao():
 
 
 def test_curso_com_sufixo_do_campus():
-    from suap_rit.coleta import _curso
+    from expeditto.coleta import _curso
 
     assert _curso("nde do curso bacharelado em sistemas de informação do campus exemplo") == "sistemas-de-informacao"
 
@@ -254,7 +254,7 @@ def test_ata_classificada_pelo_assunto_e_departamento_nao_pelo_corpo():
     ("  ", None),
 ])
 def test_papel_padronizado(bruto, padrao):
-    from suap_rit.models import normalizar_papel
+    from expeditto.models import normalizar_papel
 
     assert normalizar_papel(bruto) == padrao
     ev = Evidencia(id="x", fonte="t", tipo=TipoEvidencia.PORTARIA, titulo="P", papel=bruto)

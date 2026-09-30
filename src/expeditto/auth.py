@@ -11,8 +11,8 @@ import json
 
 import keyring
 
-from suap_rit import config
-from suap_rit.config import BASE_URL, KEYRING_SERVICE
+from expeditto import config
+from expeditto.config import BASE_URL, KEYRING_SERVICE
 
 COOKIES_SESSAO = ("__Host-sessionid", "__Host-csrftoken")
 _TEMPO_LOGIN_MS = 10 * 60 * 1000
@@ -52,6 +52,14 @@ def salvar_sessao(cookies: dict[str, str], base_url: str = BASE_URL) -> None:
 
 def carregar_sessao(base_url: str = BASE_URL) -> dict[str, str] | None:
     bruto = keyring.get_password(KEYRING_SERVICE, base_url)
+    if not bruto:  # migração: sessão guardada pelos protótipos com o nome antigo
+        bruto = keyring.get_password(config.KEYRING_SERVICE_ANTIGO, base_url)
+        if bruto:
+            keyring.set_password(KEYRING_SERVICE, base_url, bruto)
+            try:
+                keyring.delete_password(config.KEYRING_SERVICE_ANTIGO, base_url)
+            except keyring.errors.PasswordDeleteError:
+                pass
     return json.loads(bruto) if bruto else None
 
 

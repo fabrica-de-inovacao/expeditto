@@ -1,4 +1,4 @@
-"""suap-rit: assistente de Relatório Individual de Trabalho (RIT) do SUAP IFMA."""
+"""Expeditto — seu segundo expediente, resolvido. Assistente da burocracia docente (RIT do SUAP IFMA)."""
 
 
 def main() -> None:
@@ -9,6 +9,6 @@ def main() -> None:
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
 
-    from suap_rit.cli import app
+    from expeditto.cli import app
 
     app()

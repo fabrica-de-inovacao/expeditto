@@ -12,7 +12,7 @@ import time
 
 import httpx
 
-from suap_rit.config import BASE_URL
+from expeditto.config import BASE_URL
 
 _ROTAS_PERMITIDAS = [
     r"/edu/professor/(\?.*)?$",
@@ -56,7 +56,7 @@ class SuapClient:
             cookies=cookies,
             follow_redirects=True,
             timeout=60,
-            headers={"User-Agent": "suap-rit/0.1 (+uso pessoal do docente)"},
+            headers={"User-Agent": "expeditto/0.2 (+uso pessoal do docente)"},
             transport=transport,
         )
 

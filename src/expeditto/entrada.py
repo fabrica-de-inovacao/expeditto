@@ -15,8 +15,8 @@ from pathlib import Path
 
 from fpdf import FPDF
 
-from suap_rit import acervo, config
-from suap_rit.models import Evidencia, ItemAcervo, Manifest, Pendencia, TipoEvidencia, Topico
+from expeditto import acervo, config
+from expeditto.models import Evidencia, ItemAcervo, Manifest, Pendencia, TipoEvidencia, Topico
 
 EXTENSOES = {".pdf", ".jpg", ".jpeg", ".png"}
 

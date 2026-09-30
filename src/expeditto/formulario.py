@@ -11,9 +11,9 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from suap_rit import acervo, config, html as h, textos
-from suap_rit.client import SuapClient
-from suap_rit.models import Manifest, Topico
+from expeditto import acervo, config, html as h, textos
+from expeditto.client import SuapClient
+from expeditto.models import Manifest, Topico
 
 _SUBMIT = "relatorioindividualtrabalhoprofessor_form"
 

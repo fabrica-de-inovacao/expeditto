@@ -18,13 +18,14 @@ from typing import Any
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 
-from suap_rit import acervo, anexos, atas, auth, coleta, config, entrada, formulario, gmail, pendencias, textos
-from suap_rit.client import SessaoExpirada, SuapClient
-from suap_rit.models import Topico
-from suap_rit.suap import planos
+from expeditto import acervo, anexos, atas, auth, coleta, config, entrada, formulario, gmail, pendencias, textos
+from expeditto.client import SessaoExpirada, SuapClient
+from expeditto.models import Topico
+from expeditto.suap import planos
 
 INSTRUCOES = """\
-Assistente do Relatório Individual de Trabalho (RIT) do SUAP IFMA. Roda na máquina do docente.
+Expeditto — assistente da burocracia docente ("seu segundo expediente, resolvido"). Hoje cuida do
+Relatório Individual de Trabalho (RIT) do SUAP IFMA. Roda na máquina do docente, com a sessão dele.
 
 Fluxo típico:
 1. `status_sessao`; se não houver sessão, `login` (abre janela do SUAP; o docente loga) e acompanhe com `status_tarefa`.
@@ -42,7 +43,7 @@ Fluxo típico:
 8. Entregue os links devolvidos. A ENTREGA (submeter para avaliação) é sempre feita pelo docente no SUAP.
 """
 
-servidor = MCPServer(name="suap-rit", title="RIT SUAP IFMA", instructions=INSTRUCOES, version="0.2.0")
+servidor = MCPServer(name="expeditto", title="Expeditto", instructions=INSTRUCOES, version="0.2.0")
 
 # -- tarefas em segundo plano ------------------------------------------------------
 _tarefas: dict[str, dict[str, Any]] = {}
@@ -92,7 +93,7 @@ def status_sessao() -> dict:
     try:
         with _cliente() as client:
             pagina = client.html("/edu/professor/?tab=planoatividades", aba=True)
-        from suap_rit.suap.perfil import identificar
+        from expeditto.suap.perfil import identificar
         nome, matricula, _ = identificar(pagina)
         return {"sessao": "ativa", "docente": nome, "matricula": matricula, "acervo": str(config.home())}
     except (SessaoExpirada, ValueError):
@@ -213,10 +214,10 @@ def classificar_entrada(semestre: str, arquivo: str, topico: str) -> dict:
 @servidor.tool()
 def buscar_atas_gmail(semestre: str) -> dict:
     """BACKUP para hosts SEM integração de e-mail: busca atas no Gmail das contas autorizadas
-    na CLI (`suap-rit gmail-login`). Devolve candidatas numeradas; o docente escolhe quais registrar."""
+    na CLI (`expeditto gmail-login`). Devolve candidatas numeradas; o docente escolhe quais registrar."""
     manifest = _manifest(semestre)
     if not gmail.contas():
-        return {"erro": "nenhuma conta Gmail autorizada; peça ao docente para rodar `suap-rit gmail-login`"}
+        return {"erro": "nenhuma conta Gmail autorizada; peça ao docente para rodar `expeditto gmail-login`"}
     cand = gmail.buscar(manifest.semestre)
     return {"candidatas": [{"numero": n, "assunto": c.assunto, "data": c.data, "remetente": c.remetente,
                             "trecho": c.trecho[:200], "pdfs": c.anexos_pdf} for n, c in enumerate(cand, 1)]}

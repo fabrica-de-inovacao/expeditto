@@ -5,13 +5,13 @@ from datetime import date, datetime
 
 import pytest
 
-from suap_rit import acervo, atas, pendencias, textos
-from suap_rit.models import Evidencia, ItemAcervo, Manifest, Pendencia, Semestre, TipoEvidencia, Topico
+from expeditto import acervo, atas, pendencias, textos
+from expeditto.models import Evidencia, ItemAcervo, Manifest, Pendencia, Semestre, TipoEvidencia, Topico
 
 
 @pytest.fixture
 def manifest(tmp_path, monkeypatch):
-    monkeypatch.setenv("SUAP_RIT_HOME", str(tmp_path))
+    monkeypatch.setenv("EXPEDITTO_HOME", str(tmp_path))
     ev = Evidencia(id="p1", fonte="t", tipo=TipoEvidencia.PROJETO_PESQUISA, titulo="Projeto Inativo")
     m = Manifest(semestre=Semestre(ano=2025, periodo=1), gerado_em=datetime.now(), evidencias={"p1": ev},
                  itens=[ItemAcervo(evidencia_id="p1", topicos=[Topico.PESQUISA], motivo="")],

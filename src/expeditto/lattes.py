@@ -11,8 +11,8 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-from suap_rit import html as h
-from suap_rit.models import Evidencia, Manifest, Pendencia, Topico
+from expeditto import html as h
+from expeditto.models import Evidencia, Manifest, Pendencia, Topico
 
 # (seção h4 contém, subseção h2 começa com) → (categoria, tópico). Seção vazia = qualquer.
 _MAPA = [

@@ -1,7 +1,17 @@
 [project]
-name = "suap-rit"
-version = "0.1.0"
-description = "Assistente do RIT (Relatório Individual de Trabalho) do SUAP IFMA: coleta e organiza evidências."
+name = "expeditto"
+version = "0.2.0"
+description = "Expeditto: seu segundo expediente, resolvido. Assistente de burocracia docente (RIT do SUAP IFMA), com CLI e servidor MCP."
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+keywords = ["docente", "rit", "suap", "ifma", "mcp", "automacao"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Environment :: Console",
+    "Natural Language :: Portuguese (Brazilian)",
+    "Operating System :: OS Independent",
+]
 authors = [
     { name = "Vinicius Schneider", email = "contatovschneider@gmail.com" }
 ]
@@ -20,8 +30,11 @@ dependencies = [
     "typer>=0.27.2",
 ]
 
+[project.urls]
+Homepage = "https://expeditto.fabitz.com.br"
+
 [project.scripts]
-suap-rit = "suap_rit:main"
+expeditto = "expeditto:main"
 
 [build-system]
 requires = ["uv_build>=0.11.1,<0.12.0"]

@@ -15,8 +15,8 @@ import pikepdf
 from fpdf import FPDF
 from pypdf import PdfReader, PdfWriter
 
-from suap_rit import acervo, config
-from suap_rit.models import AnexoTopico, Evidencia, Manifest, Pendencia, TipoEvidencia, Topico
+from expeditto import acervo, config
+from expeditto.models import AnexoTopico, Evidencia, Manifest, Pendencia, TipoEvidencia, Topico
 
 LIMITE_BYTES = 10 * 1024 * 1024  # "Tamanho máximo permitido: 10,0 MB."
 
@@ -152,7 +152,7 @@ def montar_topico(manifest: Manifest, topico: Topico, nome: str) -> tuple[AnexoT
 
 
 def montar(manifest: Manifest, nome: str) -> Manifest:
-    from suap_rit import entrada, pendencias as decisoes
+    from expeditto import entrada, pendencias as decisoes
 
     entrada.aplicar(manifest)  # inclui o que o docente acabou de colocar na pasta de entrada
     decisoes.aplicar(manifest)

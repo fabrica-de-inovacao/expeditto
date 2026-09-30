@@ -1,4 +1,4 @@
-"""CLI `suap-rit` — casca fina sobre o núcleo (o MCP usará as mesmas funções)."""
+"""CLI `expeditto` — casca fina sobre o núcleo (o MCP usará as mesmas funções)."""
 
 from __future__ import annotations
 
@@ -6,19 +6,19 @@ from collections import Counter
 
 import typer
 
-from suap_rit import acervo, auth, coleta, config
-from suap_rit.client import SessaoExpirada, SuapClient
-from suap_rit.models import Perfil, Topico
-from suap_rit.suap import planos
+from expeditto import acervo, auth, coleta, config
+from expeditto.client import SessaoExpirada, SuapClient
+from expeditto.models import Perfil, Topico
+from expeditto.suap import planos
 
-app = typer.Typer(help="Organiza evidências do SUAP IFMA para o Relatório Individual de Trabalho (RIT).",
+app = typer.Typer(help="Expeditto · seu segundo expediente, resolvido. Prepara o RIT do SUAP IFMA a partir dos seus comprovantes.",
                   no_args_is_help=True)
 
 
 def _cliente() -> tuple[SuapClient, Perfil | None]:
     cookies = auth.carregar_sessao()
     if not cookies:
-        typer.secho("Sem sessão. Rode `suap-rit login`.", fg="red")
+        typer.secho("Sem sessão. Rode `expeditto login`.", fg="red")
         raise typer.Exit(1)
     perfil = acervo.carregar_perfil()
     return SuapClient(cookies, matricula=perfil.matricula if perfil else None), perfil
@@ -43,7 +43,7 @@ def semestres() -> None:
         try:
             lista = planos.carregar_todos(client)
         except SessaoExpirada:
-            typer.secho("Sessão expirada. Rode `suap-rit login`.", fg="red")
+            typer.secho("Sessão expirada. Rode `expeditto login`.", fg="red")
             raise typer.Exit(1)
     for p in lista:
         destaque = "yellow" if p.estado.value == "rit_a_preencher" else None
@@ -63,7 +63,7 @@ def coletar(semestre: str = typer.Argument(..., help="Ex.: 2025.1"),
             manifest = coleta.coletar_semestre(client, perfil, semestre, baixar=not sem_download,
                                                progresso=lambda m: typer.echo(f"  · {m}"))
         except SessaoExpirada:
-            typer.secho("Sessão expirada. Rode `suap-rit login`.", fg="red")
+            typer.secho("Sessão expirada. Rode `expeditto login`.", fg="red")
             raise typer.Exit(1)
     _resumo(manifest)
 
@@ -73,7 +73,7 @@ def status(semestre: str) -> None:
     """Mostra o resumo do acervo já coletado de um semestre."""
     manifest = acervo.carregar_manifest(semestre)
     if not manifest:
-        typer.secho(f"Nada coletado para {semestre}. Rode `suap-rit coletar {semestre}`.", fg="red")
+        typer.secho(f"Nada coletado para {semestre}. Rode `expeditto coletar {semestre}`.", fg="red")
         raise typer.Exit(1)
     _resumo(manifest)
 
@@ -97,11 +97,11 @@ def _resumo(manifest) -> None:
 @app.command()
 def montar(semestre: str) -> None:
     """Gera o PDF de anexo de cada tópico (capa + índice + comprovantes, ≤ 10 MB)."""
-    from suap_rit import anexos
+    from expeditto import anexos
 
     manifest = acervo.carregar_manifest(semestre)
     if not manifest:
-        typer.secho(f"Nada coletado para {semestre}. Rode `suap-rit coletar {semestre}`.", fg="red")
+        typer.secho(f"Nada coletado para {semestre}. Rode `expeditto coletar {semestre}`.", fg="red")
         raise typer.Exit(1)
     perfil = acervo.carregar_perfil()
     manifest = anexos.montar(manifest, perfil.nome if perfil else "")
@@ -118,7 +118,7 @@ def montar(semestre: str) -> None:
 @app.command()
 def textos(semestre: str, sobrescrever: bool = typer.Option(False, help="Refaz textos já revisados.")) -> None:
     """Gera rascunhos dos 'Relatos' por tópico (HTML) a partir do acervo."""
-    from suap_rit import textos as txt
+    from expeditto import textos as txt
 
     manifest = acervo.carregar_manifest(semestre)
     if not manifest:
@@ -137,7 +137,7 @@ def preencher(semestre: str,
               salvar: bool = typer.Option(False, "--salvar", help="Grava no SUAP (Salvar). Nunca entrega."),
               sim: bool = typer.Option(False, "--sim", help="Não pedir confirmação.")) -> None:
     """Mostra o que será enviado ao formulário do RIT; com --salvar, grava como rascunho no SUAP."""
-    from suap_rit import formulario
+    from expeditto import formulario
 
     manifest = acervo.carregar_manifest(semestre)
     if not manifest or not manifest.plano or not manifest.plano.plano_id:
@@ -157,7 +157,7 @@ def preencher(semestre: str,
         try:
             r = formulario.salvar(client, manifest.plano.plano_id, envio)
         except SessaoExpirada:
-            typer.secho("Sessão expirada. Rode `suap-rit login`.", fg="red")
+            typer.secho("Sessão expirada. Rode `expeditto login`.", fg="red")
             raise typer.Exit(1)
     for m in r.mensagens:
         typer.echo(f"  SUAP: {m}")
@@ -172,7 +172,7 @@ def preencher(semestre: str,
 @app.command("gmail-login")
 def gmail_login(conta: str = typer.Option(None, help="E-mail sugerido (institucional ou acadêmico).")) -> None:
     """Autoriza leitura do Gmail (backup para hosts sem conector de e-mail). Repita para outra conta."""
-    from suap_rit import gmail
+    from expeditto import gmail
 
     typer.echo(f"Conta autorizada: {gmail.login(conta)}  (contas: {', '.join(gmail.contas())})")
 
@@ -180,17 +180,17 @@ def gmail_login(conta: str = typer.Option(None, help="E-mail sugerido (instituci
 @app.command("gmail-atas")
 def gmail_atas(semestre: str, registrar: str = typer.Option(None, help="Números a registrar, ex.: 1,3,4")) -> None:
     """Lista e-mails candidatos a ata no período do semestre; com --registrar, registra os escolhidos."""
-    from suap_rit import gmail
+    from expeditto import gmail
 
     if registrar:
         feitas = gmail.registrar(semestre, [int(n) for n in registrar.split(",")])
         for a in feitas:
             typer.echo(f"  registrada: {a['assunto']} ({'PDF original' if a['anexo_original'] else 'registro do e-mail'})")
-        typer.echo("Rode `suap-rit coletar` ou `suap-rit montar` para incluir no acervo.")
+        typer.echo("Rode `expeditto coletar` ou `expeditto montar` para incluir no acervo.")
         return
     manifest = acervo.carregar_manifest(semestre)
     if not manifest:
-        typer.secho(f"Rode `suap-rit coletar {semestre}` antes (datas do semestre).", fg="red")
+        typer.secho(f"Rode `expeditto coletar {semestre}` antes (datas do semestre).", fg="red")
         raise typer.Exit(1)
     for n, c in enumerate(gmail.buscar(manifest.semestre), 1):
         typer.echo(f"{n:>3}. {c.data[:16]}  {c.assunto[:70]}  [{', '.join(c.anexos_pdf) or 'sem PDF'}]")
@@ -199,18 +199,18 @@ def gmail_atas(semestre: str, registrar: str = typer.Option(None, help="Números
 @app.command()
 def entrada(semestre: str) -> None:
     """Mostra a pasta de entrada (comprovantes próprios, uma subpasta por tópico)."""
-    from suap_rit import entrada as ent
+    from expeditto import entrada as ent
 
     raiz = ent.pasta(semestre)
     typer.echo(f"Coloque PDFs/fotos em uma subpasta por tópico de: {raiz}")
     typer.echo(f"  subpastas: {', '.join(p.name for p in sorted(raiz.iterdir()) if p.is_dir())}")
-    typer.echo(f"Depois rode `suap-rit montar {semestre}`.")
+    typer.echo(f"Depois rode `expeditto montar {semestre}`.")
 
 
 @app.command()
 def mcp() -> None:
     """Inicia o servidor MCP (stdio) para Claude Desktop/Code, Codex ou Gemini/Antigravity CLI."""
-    from suap_rit.mcp_server import main as servir
+    from expeditto.mcp_server import main as servir
 
     servir()
 

@@ -7,8 +7,8 @@ from datetime import date, datetime
 import httpx
 import pytest
 
-from suap_rit import acervo, entrada, gmail, lattes
-from suap_rit.models import Evidencia, Manifest, Semestre, TipoEvidencia, Topico
+from expeditto import acervo, entrada, gmail, lattes
+from expeditto.models import Evidencia, Manifest, Semestre, TipoEvidencia, Topico
 
 
 def _acc(secao, subsecao, linhas):
@@ -41,7 +41,7 @@ def test_lattes_parse_e_lacunas():
 
 
 def test_pasta_de_entrada(tmp_path, monkeypatch):
-    monkeypatch.setenv("SUAP_RIT_HOME", str(tmp_path))
+    monkeypatch.setenv("EXPEDITTO_HOME", str(tmp_path))
     m = Manifest(semestre=Semestre(ano=2025, periodo=1, inicio=date(2025, 2, 3)), gerado_em=datetime.now())
     raiz = entrada.pasta("2025.1")
     (raiz / "pesquisa" / "artigo_publicado.pdf").write_bytes(b"%PDF-1.4 x")
@@ -81,7 +81,7 @@ def _gmail_api(pdf_bytes):
 
 
 def test_gmail_buscar_e_registrar(tmp_path, monkeypatch):
-    monkeypatch.setenv("SUAP_RIT_HOME", str(tmp_path))
+    monkeypatch.setenv("EXPEDITTO_HOME", str(tmp_path))
     monkeypatch.setattr(gmail, "contas", lambda: ["prof@ifma.edu.br"])
     monkeypatch.setattr(gmail, "_token", lambda conta: "tok")
     sem = Semestre(ano=2025, periodo=1, inicio=date(2025, 2, 3), fim=date(2025, 6, 26))

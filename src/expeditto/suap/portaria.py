@@ -13,7 +13,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-from suap_rit.html import parse_data
+from expeditto.html import parse_data
 
 _DATA = r"(\d{1,2}[./]\d{1,2}[./]\d{4}|\d{1,2}º? de [A-Za-zç]+ de \d{4})"
 _PAPEIS = [

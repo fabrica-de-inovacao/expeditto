@@ -13,11 +13,11 @@ import re
 
 from pypdf import PdfReader
 
-from suap_rit import html as h
-from suap_rit.acervo import Cache
-from suap_rit.client import SuapClient
-from suap_rit.models import Evidencia, Perfil, TipoEvidencia, normalizar_papel
-from suap_rit.suap import portaria
+from expeditto import html as h
+from expeditto.acervo import Cache
+from expeditto.client import SuapClient
+from expeditto.models import Evidencia, Perfil, TipoEvidencia, normalizar_papel
+from expeditto.suap import portaria
 
 _FONTE = "suap_servidor"
 

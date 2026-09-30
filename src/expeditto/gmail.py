@@ -4,7 +4,7 @@ Login: fluxo "loopback" (abre o navegador, o docente entra no Google e a CLI rec
 o token em http://localhost). Escopo `gmail.readonly` (restrito): enquanto o app do
 Google Cloud estiver em modo "Testing", cada conta precisa estar na lista de testers
 e o consentimento expira em 7 dias. As credenciais do app ficam em
-`~/suap-rit/google_client.json` (ou `SUAP_RIT_GOOGLE_CLIENT`); tokens no keyring.
+`~/expeditto/google_client.json` (ou `EXPEDITTO_GOOGLE_CLIENT`); tokens no keyring.
 """
 
 from __future__ import annotations
@@ -20,8 +20,8 @@ from pathlib import Path
 import httpx
 import keyring
 
-from suap_rit import acervo, atas, config
-from suap_rit.models import Semestre
+from expeditto import acervo, atas, config
+from expeditto.models import Semestre
 
 ESCOPOS = ["https://www.googleapis.com/auth/gmail.readonly", "openid",
            "https://www.googleapis.com/auth/userinfo.email"]
@@ -31,7 +31,7 @@ PALAVRAS = ["ata", "atas", "convocação", "convocacao", "reunião", "reuniao", 
 
 
 def _arquivo_cliente() -> Path:
-    return Path(os.environ.get("SUAP_RIT_GOOGLE_CLIENT", config.home() / "google_client.json"))
+    return Path(os.environ.get("EXPEDITTO_GOOGLE_CLIENT", config.home() / "google_client.json"))
 
 
 def _contas_arquivo() -> Path:
@@ -67,7 +67,7 @@ def _token(email: str) -> str:
 
     bruto = keyring.get_password(config.KEYRING_SERVICE, f"gmail:{email}")
     if not bruto:
-        raise PermissionError(f"Conta {email} não autorizada: rode `suap-rit gmail-login`.")
+        raise PermissionError(f"Conta {email} não autorizada: rode `expeditto gmail-login`.")
     cred = Credentials.from_authorized_user_info(json.loads(bruto), ESCOPOS)
     if not cred.valid:
         cred.refresh(Request())  # expira em 7 dias no modo "Testing" → novo login
