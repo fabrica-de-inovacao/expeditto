@@ -103,8 +103,8 @@ def _mudou_depois_de_salvar(codigo: str, salvo: dict) -> bool:
 
 # -- o roteiro ----------------------------------------------------------------------------
 def situacao(semestre: str | None, seguir_sem_decidir: bool = False,
-             semestres_a_preencher: list[str] | None = None) -> Passo:
-    if not auth.carregar_sessao():
+             semestres_a_preencher: list[str] | None = None, exigir_sessao: bool = True) -> Passo:
+    if exigir_sessao and not auth.carregar_sessao():
         return Passo("login", "Preciso que você entre no SUAP. Vou abrir uma janela; é só fazer o login.",
                      {"ferramenta": "login", "argumentos": {}})
     if not semestre:

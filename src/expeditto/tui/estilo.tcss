@@ -1,0 +1,259 @@
+/* Expeditto — "noite de expediente": fundo café, laranja do despertador, creme do mostrador. */
+
+Screen {
+    background: $background;
+}
+
+/* -- cabeçalho com o mascote ------------------------------------------------------------ */
+#topo, #cabecalho {
+    height: 18;
+    padding: 1 2 0 2;
+    background: $surface;
+    border-bottom: tall $primary 40%;
+}
+#mascote {
+    margin-right: 3;
+}
+#boas-vindas, #roteiro {
+    height: 100%;
+    padding-top: 1;
+}
+#marca {
+    text-style: bold;
+    color: $primary;
+}
+#lema {
+    color: $secondary;
+    text-style: italic;
+    margin-bottom: 1;
+}
+#saudacao, #titulo {
+    text-style: bold;
+    color: $foreground;
+}
+#titulo {
+    color: $primary;
+    margin-bottom: 1;
+}
+#resumo {
+    color: $foreground;
+}
+#fala {
+    color: $foreground;
+    background: $panel;
+    border-left: thick $primary;
+    padding: 0 1;
+    margin-bottom: 1;
+    width: 1fr;
+    max-width: 110;
+}
+#trilha {
+    margin-bottom: 1;
+    height: auto;
+}
+#sessao {
+    margin-top: 1;
+}
+.sessao-ok { color: $success; }
+.sessao-aviso { color: $warning; }
+.sessao-erro { color: $error; }
+#acoes {
+    height: 3;
+    margin-top: 1;
+}
+#acoes Button, .botoes Button {
+    margin-right: 2;
+}
+
+/* -- início ---------------------------------------------------------------------------- */
+.secao {
+    padding: 1 2 0 2;
+    text-style: bold;
+    color: $secondary;
+}
+#semestres {
+    margin: 1 2;
+    height: 1fr;
+    background: $surface;
+}
+#semestres > .datatable--header {
+    color: $secondary;
+    text-style: bold;
+    background: $panel;
+}
+#aviso {
+    color: $text-muted;
+    padding: 0 2 1 2;
+    height: auto;
+}
+
+/* -- preparo --------------------------------------------------------------------------- */
+#abas {
+    height: 1fr;
+    margin: 0 1;
+}
+TabPane {
+    padding: 1 2;
+}
+.explica {
+    color: $text-muted;
+    margin-bottom: 1;
+    max-width: 110;
+}
+.dica {
+    color: $secondary;
+    margin-top: 1;
+}
+.botoes {
+    height: 3;
+    margin-bottom: 1;
+}
+.vazio {
+    padding: 1 0;
+    color: $text-muted;
+}
+.ok {
+    color: $success;
+}
+#painel-coleta {
+    height: auto;
+    border: round $primary 50%;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+#painel-coleta.vazio-painel {
+    display: none;
+}
+#coleta-resumo {
+    height: auto;
+}
+
+/* cartões de pendências */
+.cartao {
+    height: auto;
+    border: round $primary 60%;
+    background: $surface;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+.cartao-titulo {
+    text-style: bold;
+    color: $primary;
+}
+.pergunta {
+    margin-bottom: 1;
+}
+.itens {
+    height: auto;
+    max-height: 10;
+    background: $panel;
+    margin-bottom: 1;
+}
+.justificar {
+    height: 3;
+    margin-bottom: 1;
+}
+.justificar Input {
+    width: 1fr;
+    margin-right: 2;
+}
+.decididas {
+    color: $success;
+    margin: 1 0;
+}
+
+/* medidores de anexos */
+#medidores {
+    height: auto;
+}
+.linha-anexo {
+    height: 1;
+    margin-bottom: 1;
+}
+.linha-anexo .rotulo {
+    width: 34;
+}
+.linha-anexo .info {
+    margin-left: 2;
+    color: $text-muted;
+}
+.medidor Bar {
+    width: 30;
+}
+.medidor Bar > .bar--bar, .medidor Bar > .bar--complete {
+    color: $success;
+}
+.medidor.estourou Bar > .bar--bar {
+    color: $error;
+}
+
+/* relatos */
+#lista-relatos {
+    width: 38;
+    margin-right: 2;
+}
+#topicos {
+    height: auto;
+    max-height: 12;
+    margin-bottom: 1;
+}
+#lista-relatos Button {
+    width: 100%;
+    margin-bottom: 1;
+}
+#previa-relato {
+    border: round $primary 50%;
+    padding: 0 1;
+}
+
+/* salvar */
+#envio {
+    height: auto;
+    margin-bottom: 1;
+}
+#cartao {
+    margin-top: 1;
+}
+
+/* -- login e diagnóstico ----------------------------------------------------------------- */
+Login {
+    align: center middle;
+    background: $background 70%;
+}
+#caixa-login {
+    width: 100;
+    height: 22;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 2;
+}
+.titulo-caixa {
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+#instrucao {
+    margin-bottom: 1;
+}
+#painel-login {
+    height: auto;
+}
+#verificacoes {
+    padding: 1 2;
+}
+
+/* -- telas estreitas: o mascote sai para dar espaço -------------------------------------- */
+Screen.-estreito #mascote, Screen.-baixo #mascote {
+    display: none;
+}
+Screen.-estreito #topo, Screen.-estreito #cabecalho, Screen.-baixo #topo, Screen.-baixo #cabecalho {
+    height: auto;
+    padding-top: 0;
+}
+Screen.-estreito #boas-vindas, Screen.-estreito #roteiro, Screen.-baixo #boas-vindas, Screen.-baixo #roteiro {
+    height: auto;
+    padding-top: 0;
+}
+Screen.-baixo #lema, Screen.-baixo #titulo, Screen.-baixo #sessao {
+    margin: 0;
+}

@@ -10,10 +10,21 @@ Funciona pelo terminal (`expeditto`) e dentro do seu assistente de IA (servidor 
 - Rotas e telas do SUAP mapeadas: [`docs/mapa-suap-ifma.md`](docs/mapa-suap-ifma.md)
 - Decisões e regras de negócio: [`docs/decisoes.md`](docs/decisoes.md)
 
-## Uso (CLI)
+## Interface visual (terminal)
 
 ```bash
 uv sync
+uv run expeditto                  # tela cheia: semestres, preparar RIT, pendências, anexos, relatos, salvar
+uv run expeditto --semestre 2025.2 --alto-contraste
+uv run expeditto doctor           # diagnóstico: navegador, sessão, apps de IA conectados
+```
+
+O despertador laranja é o mascote do Expeditto (pixel art em `docs/marca/`). Mouse e teclado funcionam em
+todas as telas; em janelas pequenas o mascote dá lugar ao conteúdo.
+
+## Uso (comandos)
+
+```bash
 uv run expeditto login            # janela do SUAP para login (CAPTCHA/Gov.br); fecha sozinha
 uv run expeditto semestres        # estado do PIT/RIT por semestre + links
 uv run expeditto coletar 2025.1   # coleta, classifica e baixa comprovantes
