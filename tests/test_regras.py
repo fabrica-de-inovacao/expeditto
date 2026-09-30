@@ -204,3 +204,10 @@ def test_estagio_usa_declaracao_do_ano_do_semestre():
                    extras={"declaracao_2025": "/d/2025/", "declaracao_2024": "/d/2024/"})
     _declaracao_de_estagio(ev, Semestre(ano=2025, periodo=1))
     assert ev.url_comprovante == "/d/2025/"
+
+
+def test_portaria_de_designacao_individual_pega_a_funcao():
+    d = portaria.parse("RESOLVE: Art. 1º Designar o (a) servidor (a) Fulana de Tal , Professor Ens Basico, "
+                       "para desempenhar a Função de Coordenador (a) do Curso Técnico em Informática.",
+                       nome="Fulana de Tal")
+    assert d.papel == "Coordenador (a)"

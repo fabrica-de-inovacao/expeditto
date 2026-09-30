@@ -90,6 +90,10 @@ def _papel(corpo: str, nome: str | None, matricula: str | None) -> str | None:
             break
     if posicao < 0:
         return None
+    # Designação individual: "Designar Fulana ... para desempenhar a Função de Coordenador(a) do Curso..."
+    depois = corpo[posicao:posicao + 400]
+    if m := re.search(r"(?:fun[çc][ãa]o|cargo)\s+de\s+(.{4,60}?)(?=\s+(?:do|da|de|no|na)\s|[,.;]|$)", depois, re.I):
+        return re.sub(r"\s+", " ", m[1]).strip().capitalize()
     anterior = corpo[:posicao].lower()
     melhor, melhor_pos = None, -1
     for rotulo, padrao in _PAPEIS:

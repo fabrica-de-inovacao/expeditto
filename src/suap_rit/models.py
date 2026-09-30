@@ -140,6 +140,17 @@ class ItemAcervo(BaseModel):
     validade: date | None = None  # "Válido até" impresso no comprovante emitido pelo SUAP
 
 
+class AnexoTopico(BaseModel):
+    """PDF único enviado no campo `arquivo_<topico>` do RIT (capa + índice + comprovantes)."""
+
+    topico: Topico
+    arquivo: str  # caminho relativo ao acervo
+    bytes: int
+    paginas: int
+    documentos: int
+    comprimido: bool = False
+
+
 class Manifest(BaseModel):
     semestre: Semestre
     plano: PlanoSemestre | None = None
@@ -147,6 +158,7 @@ class Manifest(BaseModel):
     evidencias: dict[str, Evidencia] = Field(default_factory=dict)
     itens: list[ItemAcervo] = Field(default_factory=list)
     pendencias: list[Pendencia] = Field(default_factory=list)
+    anexos: dict[str, AnexoTopico] = Field(default_factory=dict)
 
 
 class Perfil(BaseModel):

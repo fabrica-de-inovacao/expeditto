@@ -95,6 +95,27 @@ def _resumo(manifest) -> None:
 
 
 @app.command()
+def montar(semestre: str) -> None:
+    """Gera o PDF de anexo de cada tópico (capa + índice + comprovantes, ≤ 10 MB)."""
+    from suap_rit import anexos
+
+    manifest = acervo.carregar_manifest(semestre)
+    if not manifest:
+        typer.secho(f"Nada coletado para {semestre}. Rode `suap-rit coletar {semestre}`.", fg="red")
+        raise typer.Exit(1)
+    perfil = acervo.carregar_perfil()
+    manifest = anexos.montar(manifest, perfil.nome if perfil else "")
+    for topico in Topico:
+        a = manifest.anexos.get(topico.value)
+        info = (f"{a.documentos:>3} docs, {a.paginas:>3} págs, {a.bytes / 1048576:5.2f} MB"
+                + (" (comprimido)" if a.comprimido else "")) if a else "  — sem comprovantes"
+        typer.echo(f"  {topico.rotulo:<72} {info}")
+    for p in (p for p in manifest.pendencias if p.tipo == "anexo_grande"):
+        typer.secho(f"  [anexo_grande] {p.mensagem}", fg="yellow")
+    typer.echo(f"\nAnexos em: {acervo.pasta_semestre(semestre) / 'anexos'}")
+
+
+@app.command()
 def logout() -> None:
     """Apaga a sessão guardada no keyring."""
     auth.apagar_sessao()
