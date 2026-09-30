@@ -13,7 +13,7 @@ def test_compara_versoes():
     assert not atualizacao.mais_nova("0.2.9", "0.3.0")
 
 
-def test_verificar_usa_cache_de_um_dia(tmp_path, monkeypatch):
+def test_verificar_usa_cache(tmp_path, monkeypatch):
     monkeypatch.setenv("EXPEDITTO_HOME", str(tmp_path))
     monkeypatch.delenv("EXPEDITTO_SEM_ATUALIZACAO")
     monkeypatch.setattr(atualizacao, "versao_instalada", lambda: "0.3.0")
@@ -30,6 +30,8 @@ def test_verificar_usa_cache_de_um_dia(tmp_path, monkeypatch):
     assert len(chamadas) == 1  # a segunda consulta veio do cache
     atualizacao.verificar(forcar=True)
     assert len(chamadas) == 2
+    monkeypatch.setattr(atualizacao, "versao_instalada", lambda: "0.4.0")  # depois de atualizar
+    assert atualizacao.verificar() is None and len(chamadas) == 3  # cache de outra versão não vale
 
 
 def test_sem_internet_nao_ha_aviso(tmp_path, monkeypatch):

@@ -1,6 +1,6 @@
 """Aviso de nova versão e atualização (CLI, interface do terminal e MCP).
 
-A versão mais recente é a última *release* do GitHub. A consulta fica em cache por um dia
+A versão mais recente é a última *release* do GitHub. A consulta fica em cache por uma hora
 (`~/expeditto/.atualizacao.json`) e nunca atrasa o uso: sem internet, simplesmente não há aviso.
 Desligue com `EXPEDITTO_SEM_ATUALIZACAO=1`.
 
@@ -25,7 +25,7 @@ import httpx
 from expeditto import config
 
 REPOSITORIO = "fabrica-de-inovacao/expeditto"
-_UM_DIA = 24 * 3600
+_VALIDADE_CACHE = 3600  # uma hora: no máximo 24 consultas por dia (a API aceita 60 por hora)
 
 
 def versao_instalada() -> str:
@@ -62,14 +62,16 @@ def _buscar_release(timeout: float) -> dict | None:
 
 
 def ultima_release(forcar: bool = False, timeout: float = 2.5) -> dict | None:
-    """Última release (com cache de um dia). None sem internet, sem release ou com o aviso desligado."""
+    """Última release (cache de uma hora, válido só para a versão instalada que o gravou).
+    None sem internet, sem release ou com o aviso desligado."""
     if os.environ.get("EXPEDITTO_SEM_ATUALIZACAO"):
         return None
     cache = _cache()
     if not forcar and cache.exists():
         try:
             salvo = json.loads(cache.read_text(encoding="utf-8"))
-            if time.time() - salvo.get("consultado", 0) < _UM_DIA:
+            if (time.time() - salvo.get("consultado", 0) < _VALIDADE_CACHE
+                    and salvo.get("instalada") == versao_instalada()):
                 return salvo.get("release")
         except (OSError, ValueError):
             pass
@@ -79,7 +81,8 @@ def ultima_release(forcar: bool = False, timeout: float = 2.5) -> dict | None:
         release = None
     try:
         cache.parent.mkdir(parents=True, exist_ok=True)
-        cache.write_text(json.dumps({"consultado": time.time(), "release": release}), encoding="utf-8")
+        cache.write_text(json.dumps({"consultado": time.time(), "instalada": versao_instalada(),
+                                     "release": release}), encoding="utf-8")
     except OSError:
         pass
     return release
