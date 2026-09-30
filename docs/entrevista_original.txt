@@ -1,0 +1,25 @@
+MCP e CLI para automatizar a criação de RIT dos servidores do IFMA pelo SUAP. 
+
+Ensino -  Planos individuais de trabalho -  meus planos:
+
+Plano individual de trabalho (lista os planos por ano e informa status (se aprovado está apto a ser preenchido o relatório);
+
+garimpo dos dados para preenchimento do relatório{
+(Na própria tela de Meus planos -  diários, orientações de estágios, orientações de projeto final, participação em projetos, participação em bancas),
+No perfil - Pasta funcional -  portarias que vão definir participação em composição de banca, reunião, em programas de ensino e afins);
+Vale a pena investigar o acervo geral de projetos, orientações e afins na pasta funcional (mas com cuidado para não duplicar projetos, orientações e afins que já foram incluídas no garimpo anterior na tela meus planos (essas abas possuem conteúdo semelhante);
+}
+
+Geração do relatórios(Plano individual de trabalho) - Filtro por ano -  preencher relatório:
+
+Para cada tópico -  um texto e um anexo (todos os pdfs unificados que fazem sentido para aquele tópico);
+
+A ideia é não realizar o envio automático, apenas preencher todos os campos e anexos e disponibilizar link para visualização do relatório e solicitar o envio manual.
+
+Alguns projetos ou coisas do tipo tem execução em mais de um semestre, então os docs devem ser organizados em semestres (ano.1 ano.2) -  e os docs que tem execução em mais de um semestre devem ser duplicados nos 2 diretórios, pois o relatório é gerado por semestre.
+
+Considerar integração com gmail (para buscar participação em reuniões, portarias, bancas e afins através de atas enviadas por email);
+
+Base de funções e integração do api "https://suap.ifrn.edu.br/api/docs" e "https://suap.ifma.edu.br/api/docs"
+
+Precisa-se investigar quais dados temos acesso e de utilidade em "https://suap.ifma.edu.br/edu/professor/?tab=planoatividades"

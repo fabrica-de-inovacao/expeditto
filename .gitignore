@@ -1,0 +1,8 @@
+# Playwright MCP snapshots/logs (contêm dados pessoais do SUAP)
+.playwright-mcp/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/

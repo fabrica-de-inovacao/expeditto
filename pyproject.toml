@@ -1,0 +1,30 @@
+[project]
+name = "suap-rit"
+version = "0.1.0"
+description = "Assistente do RIT (Relatório Individual de Trabalho) do SUAP IFMA: coleta e organiza evidências."
+authors = [
+    { name = "Vinicius Schneider", email = "contatovschneider@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "keyring>=25.7.0",
+    "lxml>=6.1.3",
+    "playwright>=1.63.0",
+    "pydantic>=2.13.5",
+    "pypdf>=6.19.0",
+    "typer>=0.27.2",
+]
+
+[project.scripts]
+suap-rit = "suap_rit:main"
+
+[build-system]
+requires = ["uv_build>=0.11.1,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "respx>=0.23.1",
+]
