@@ -1,0 +1,90 @@
+# Protótipo 2 — do acervo ao rascunho salvo no SUAP
+
+> Branch `feat/prototipo-2`. Parte do protótipo 1 (`feat/prototipo-1`, commit `f29796f`): acervo organizado por semestre/tópico com comprovantes em PDF.
+> Objetivo: a docente pede "prepara meu RIT de 2025.1" no Claude Desktop e recebe um **rascunho salvo no SUAP** + link para conferir e entregar (D2, D23).
+
+## 1. Consolidação do protótipo 1 (ponto de partida)
+
+| Já temos | Onde |
+|---|---|
+| Login humano efêmero + sessão no keyring (~90 min) | `auth.py` |
+| Allowlist de rotas / minimização de dados | `client.py`, `suap/perfil.py` |
+| Estado PIT/RIT por semestre, calendário pelos diários | `suap/planos.py`, `suap/diarios.py` |
+| Coleta: diários, estágios, TCC, bancas, projetos (papel/orientação), portarias, funções, afastamentos, capacitações | `suap/*.py` |
+| Comprovantes: declarações anuais (docência, estágio), banca, orientação, participação, certificados, portarias (PDF assíncrono), validade | `coleta.py` |
+| Classificação em 7 tópicos + pendências (sem comprovante, diário incompleto, divergência PIT, afastamento) | `classificar.py`, `coleta.py` |
+| Regras D1–D40 | `docs/decisoes.md` |
+
+Resultado real 2025.1: 72 evidências, 54 PDFs distintos, 3 pendências de decisão da docente.
+
+## 2. Escopo do protótipo 2
+
+| # | Entrega | Descrição | Decisões |
+|---|---|---|---|
+| E1 | **Servidor MCP** (FastMCP, stdio) | Ferramentas de alto nível sobre o núcleo; configuração para Claude Desktop | D22, D29 |
+| E2 | **Montagem dos anexos** | 1 PDF por tópico: capa + índice + comprovantes em ordem; compressão se > 10 MB | D8, D9 |
+| E3 | **Textos dos tópicos** | Parágrafo-síntese + lista de itens (HTML simples p/ CKEditor), ancorados em evidências; no MCP o LLM do host redige, na CLI um rascunho por template | D4, D5, D7 |
+| E4 | **Alterações de Atividades** | Diff PIT × acervo → perguntas ao docente → texto de `alteracoes` | D6, D40 |
+| E5 | **Preencher e Salvar** | POST do formulário `pit_rit_v2` (textos + 7 anexos), **nunca** entregar; devolve link | D2, D23 |
+| E6 | **Gmail (atas)** | Busca nas caixas institucional e acadêmica; atas como evidência de reuniões/representação; PCDP como pista | D15, D18, D20 |
+| E7 | **Lattes como detector de lacunas** | Itens do Lattes no ano sem evidência no SUAP → pendência | D27 |
+| E8 | **Pasta de entrada manual** | Comprovantes que a docente adiciona (`acervo/AAAA.P/_entrada/`) entram no manifest | D11 |
+
+Fora do escopo: fluxo do PIT (P3), multi-docente (D24), entrega automática (proibida).
+
+## 3. Arquitetura (acréscimos)
+
+```
+núcleo (protótipo 1)
+ ├─ anexos.py      E2  merge + capa/índice + compressão + checagem 10 MB
+ ├─ textos.py      E3  contexto por tópico (itens, papéis, CH, datas) + template HTML
+ ├─ alteracoes.py  E4  diff PIT × acervo, perguntas, texto
+ ├─ formulario.py  E5  GET do form → estado atual; POST multipart "Salvar"; verificação
+ ├─ gmail/         E6  cliente OAuth (gmail.readonly) + busca + extração de atas
+ └─ lattes.py      E7  parser do Lattes importado no SUAP
+interfaces
+ ├─ cli.py         + montar, textos, preencher --dry-run
+ └─ mcp_server.py  E1
+```
+
+### Ferramentas MCP (rascunho)
+
+| Tool | Faz | Confirmação humana |
+|---|---|---|
+| `status_sessao` / `login` | verifica sessão; abre janela de login | — |
+| `listar_semestres` | estados PIT/RIT + links | — |
+| `coletar_semestre(semestre)` | protótipo 1 + Gmail + entrada manual | — |
+| `listar_pendencias(semestre)` / `resolver_pendencia(id, decisao, justificativa?)` | revisão conversacional | sim (decisão é do docente) |
+| `contexto_topico(semestre, topico)` | evidências do tópico para o LLM redigir | — |
+| `salvar_texto(semestre, topico, html)` | guarda texto (valida HTML e citações) | — |
+| `montar_anexos(semestre)` | gera os 7 PDFs, informa tamanhos | — |
+| `previa_preenchimento(semestre)` | mostra o que será enviado ao formulário (dry-run) | — |
+| `salvar_no_suap(semestre)` | POST "Salvar" + verificação + link | **sim, explícita** |
+
+Resources: `rit://{semestre}/manifest`, `rit://{semestre}/{topico}/texto`, `rit://perfil`.
+
+## 4. Investigações abertas (antes de codar cada entrega)
+
+| # | Pergunta | Bloqueia |
+|---|---|---|
+| I1 | Estrutura completa do form `preencher_relatorio_individual_trabalho`: campos ocultos, valores atuais, anexos já enviados (substituir/limpar?), CSRF, `enctype`, resposta do Salvar | E5 |
+| I2 | O que muda no estado após "Salvar" (link de visualização, "entregar" aparece?) — testar **somente com autorização** num semestre combinado | E5 |
+| I3 | CKEditor: quais tags/estilos o campo aceita e como o SUAP renderiza no PDF do RIT | E3 |
+| I4 | Gmail: OAuth próprio (Google Cloud project, escopo `gmail.readonly`) × Gmail MCP oficial no Claude Desktop × política do Workspace do IFMA para apps de terceiros | E6 |
+| I5 | Ferramentas de PDF no Windows: `pypdf` (merge) basta? compressão via `pikepdf` ou Ghostscript? | E2 |
+| I6 | Lattes importado: estrutura HTML das seções e granularidade das datas | E7 |
+| I7 | FastMCP + Playwright no Claude Desktop (stdio, Windows): login abre janela a partir do processo MCP? | E1 |
+
+## 5. Ordem proposta
+
+1. I1/I3 (leitura) → E2 anexos → E3 textos → E4 alterações (tudo local, sem escrita no SUAP).
+2. E1 servidor MCP com o fluxo até `previa_preenchimento`.
+3. I2 com autorização → E5 `salvar_no_suap`.
+4. I4 → E6 Gmail; I6 → E7 Lattes; E8 entrada manual.
+
+## 6. Critérios de pronto
+
+- No Claude Desktop, "prepara meu RIT de 2025.1" termina com rascunho **salvo** e link, sem entrega.
+- Cada item citado nos textos tem comprovante no anexo do tópico; anexos ≤ 10 MB.
+- Pendências apresentadas e resolvidas em conversa; "Alterações de Atividades" preenchido quando houver divergência.
+- Nenhuma rota fora da allowlist; `entregar_relatorio` continua bloqueado; testes automatizados cobrindo form/anexos/textos.
