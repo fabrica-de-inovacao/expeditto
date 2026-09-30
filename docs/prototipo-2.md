@@ -21,12 +21,12 @@ Resultado real 2025.1: 72 evidências, 54 PDFs distintos, 3 pendências de decis
 
 | # | Entrega | Descrição | Decisões |
 |---|---|---|---|
-| E1 | **Servidor MCP** (FastMCP, stdio) | Ferramentas de alto nível sobre o núcleo; configuração para Claude Desktop | D22, D29 |
+| E1 | **Servidor MCP** (FastMCP) | Ferramentas de alto nível sobre o núcleo; transportes `stdio` e `streamable-http` em 127.0.0.1 (D44); configuração para Claude Desktop | D22, D29, D44 |
 | E2 | **Montagem dos anexos** | 1 PDF por tópico: capa + índice + comprovantes em ordem; compressão se > 10 MB | D8, D9 |
 | E3 | **Textos dos tópicos** | Parágrafo-síntese + lista de itens (HTML simples p/ CKEditor), ancorados em evidências; no MCP o LLM do host redige, na CLI um rascunho por template | D4, D5, D7 |
 | E4 | **Alterações de Atividades** | Diff PIT × acervo → perguntas ao docente → texto de `alteracoes` | D6, D40 |
 | E5 | **Preencher e Salvar** | POST do formulário `pit_rit_v2` (textos + 7 anexos), **nunca** entregar; devolve link | D2, D23 |
-| E6 | **Gmail (atas)** | Busca nas caixas institucional e acadêmica; atas como evidência de reuniões/representação; PCDP como pista | D15, D18, D20 |
+| E6 | **Atas por e-mail** | Fluxo principal: o LLM do host busca com o conector de e-mail do ecossistema e chama `registrar_ata` (D41, D43). Backup na CLI: app OAuth próprio, loopback, `gmail.readonly` (D42). PCDP como pista | D15, D18, D20, D41–D43 |
 | E7 | **Lattes como detector de lacunas** | Itens do Lattes no ano sem evidência no SUAP → pendência | D27 |
 | E8 | **Pasta de entrada manual** | Comprovantes que a docente adiciona (`acervo/AAAA.P/_entrada/`) entram no manifest | D11 |
 
@@ -54,6 +54,7 @@ interfaces
 | `status_sessao` / `login` | verifica sessão; abre janela de login | — |
 | `listar_semestres` | estados PIT/RIT + links | — |
 | `coletar_semestre(semestre)` | protótipo 1 + Gmail + entrada manual | — |
+| `registrar_ata(semestre, assunto, data, remetente, id_mensagem, texto, anexo_base64?)` | recebe ata encontrada pelo conector de e-mail do host (D41, D43) | — |
 | `listar_pendencias(semestre)` / `resolver_pendencia(id, decisao, justificativa?)` | revisão conversacional | sim (decisão é do docente) |
 | `contexto_topico(semestre, topico)` | evidências do tópico para o LLM redigir | — |
 | `salvar_texto(semestre, topico, html)` | guarda texto (valida HTML e citações) | — |
@@ -105,3 +106,8 @@ Resources: `rit://{semestre}/manifest`, `rit://{semestre}/{topico}/texto`, `rit:
 ### Ações que dependem de pessoas
 1. **I2**: autorizar um "Salvar" de teste. Sugestão: 2025.1, com textos e anexos reais gerados pela ferramenta e conferidos antes. É reversível, porque o RIT continua editável até a entrega.
 2. **I4**: criar/usar um projeto Google Cloud e testar o consentimento OAuth com a conta institucional da docente. Se bloquear, perguntar à TI do IFMA sobre liberação (ou seguir com o fallback manual).
+
+### Atualização I4 (e-mail) e I7 — 2026-09-29, noite
+- I4 resolvido por decisão: conector do ecossistema (D41) + backup OAuth próprio na CLI (D42). Limitação de anexos tratada em D43.
+- Portabilidade entre hosts: D44 (stdio + HTTP local; remoto/túnel fora do escopo).
+- Login SUAP: D45.
