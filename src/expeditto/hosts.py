@@ -28,9 +28,23 @@ def _home() -> Path:
     return Path(os.environ.get("EXPEDITTO_HOSTS_HOME", Path.home()))
 
 
+def _local_appdata() -> Path:
+    return Path(os.environ.get("LOCALAPPDATA", _home() / "AppData" / "Local"))
+
+
+def _pacote_claude_msix() -> Path | None:
+    """Claude Desktop instalado como pacote MSIX (Microsoft Store/instalador novo): o app enxerga uma pasta
+    AppData virtualizada dentro do pacote, e é lá que ele lê o claude_desktop_config.json."""
+    pacotes = _local_appdata() / "Packages"
+    achados = sorted(pacotes.glob("Claude_*")) if pacotes.exists() else []
+    return achados[0] if achados else None
+
+
 def _config_claude_desktop() -> Path:
     sistema = platform.system()
     if sistema == "Windows":
+        if pacote := _pacote_claude_msix():
+            return pacote / "LocalCache" / "Roaming" / "Claude" / "claude_desktop_config.json"
         base = Path(os.environ.get("APPDATA", _home() / "AppData" / "Roaming"))
         return base / "Claude" / "claude_desktop_config.json"
     if sistema == "Darwin":
@@ -83,13 +97,15 @@ class HostJson(Host):
     """Apps configurados por um JSON com a chave `mcpServers` (Claude Desktop, Gemini, Antigravity)."""
 
     def __init__(self, id: str, nome: str, arquivo: Path, pasta_app: Path, executavel: str | None = None,
-                 extras: dict | None = None, extensoes: Path | None = None):
+                 extras: dict | None = None, extensoes: Path | None = None, indicios: list[Path] | None = None):
         super().__init__(id, nome)
         self.arquivo, self.pasta_app, self.executavel, self.extras = arquivo, pasta_app, executavel, extras or {}
+        self.indicios = indicios or []  # outras pastas que mostram que o app está instalado (mesmo nunca aberto)
         self.extensoes = extensoes  # Gemini CLI: pasta de extensões (guia do Expeditto como contexto)
 
     def instalado(self) -> bool:
-        return self.pasta_app.exists() or bool(self.executavel and shutil.which(self.executavel))
+        return (self.pasta_app.exists() or any(i.exists() for i in self.indicios)
+                or bool(self.executavel and shutil.which(self.executavel)))
 
     def configurado(self) -> bool:
         return NOME_SERVIDOR in _ler_json(self.arquivo).get("mcpServers", {})
@@ -191,7 +207,9 @@ def permitir_no_claude_code(arquivo: Path, remover: bool = False) -> None:
 def todos() -> list[Host]:
     home = _home()
     return [
-        HostJson("claude-desktop", "Claude Desktop", _config_claude_desktop(), _config_claude_desktop().parent),
+        HostJson("claude-desktop", "Claude Desktop", _config_claude_desktop(), _config_claude_desktop().parent,
+                 indicios=[_local_appdata() / "AnthropicClaude", Path("/Applications/Claude.app"),
+                           *filter(None, [_pacote_claude_msix()])]),
         HostCli("claude-code", "Claude Code", "claude",
                 ["mcp", "add", NOME_SERVIDOR, "-s", "user"], ["mcp", "remove", NOME_SERVIDOR, "-s", "user"],
                 home / ".claude.json", r'"expeditto"\s*:', permissoes=home / ".claude" / "settings.json",
