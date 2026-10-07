@@ -1,6 +1,7 @@
 # Expeditto: instalador para Windows.
 # Uso (PowerShell):
-#   powershell -ExecutionPolicy ByPass -c "irm https://expeditto.fabitz.com.br/install.ps1 | iex"
+#   irm https://expeditto.fabitz.com.br/install.ps1 | iex
+#   (direto no PowerShell: sem abrir outro powershell, não há aspas para se perder no caminho)
 #
 # O que faz: instala o uv (gerenciador de Python da Astral) se faltar, instala o Expeditto
 # com `uv tool install` e abre o assistente `expeditto instalar` (navegador, apps de IA,
@@ -31,7 +32,11 @@ Write-Host ''
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     Diga 'Instalando o uv (gerenciador de Python)...'
-    powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    # Num job: não depende de aspas na linha de comando (ver cabeçalho) e o `exit 1` do instalador do uv,
+    # se ele falhar, encerra só o job, não a janela do docente.
+    $job = Start-Job -ScriptBlock { param($url) Invoke-RestMethod $url | Invoke-Expression } `
+        -ArgumentList 'https://astral.sh/uv/install.ps1'
+    Receive-Job $job -Wait -AutoRemoveJob
     $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
     if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { throw 'Nao consegui instalar o uv.' }
 }
