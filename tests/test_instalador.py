@@ -31,6 +31,27 @@ def app_falso(tmp_path, monkeypatch):
     return app
 
 
+def test_claude_desktop_msix_e_nunca_aberto(tmp_path, monkeypatch):
+    """Versão MSIX (Store/instalador novo): config virtualizada no pacote. E um Claude instalado mas nunca
+    aberto (sem a pasta de config) também conta como instalado."""
+    monkeypatch.setattr(hosts.platform, "system", lambda: "Windows")
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
+    monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
+    pacote = tmp_path / "Local" / "Packages" / "Claude_pzs8sxrjxfjjc"
+    pacote.mkdir(parents=True)
+    claude = hosts.por_id("claude-desktop")
+    assert claude.arquivo == pacote / "LocalCache" / "Roaming" / "Claude" / "claude_desktop_config.json"
+    assert claude.instalado() and not claude.configurado()
+    claude.configurar()
+    assert claude.configurado()
+
+    pacote.rename(tmp_path / "removido")  # instalador clássico, nunca aberto: só existe a pasta do programa
+    (tmp_path / "Local" / "AnthropicClaude").mkdir()
+    claude = hosts.por_id("claude-desktop")
+    assert claude.arquivo == tmp_path / "Roaming" / "Claude" / "claude_desktop_config.json"
+    assert claude.instalado()
+
+
 def test_conectar_e_desconectar(app_falso):
     assert [a.id for a in instalador.apps_detectados()] == ["claude-desktop"]
     [r] = instalador.conectar([app_falso])
