@@ -9,6 +9,12 @@ def main() -> None:
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
 
+    # Certificados do sistema em vez da lista embutida do Python: antivírus com varredura HTTPS e redes
+    # com proxy instalam a própria raiz no Windows, e sem isso toda conexão dá CERTIFICATE_VERIFY_FAILED.
+    import truststore
+
+    truststore.inject_into_ssl()
+
     from expeditto.cli import app
 
     app()

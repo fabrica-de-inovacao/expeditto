@@ -350,7 +350,7 @@ wheels = [
 
 [[package]]
 name = "expeditto"
-version = "0.4.2"
+version = "0.4.3"
 source = { editable = "." }
 dependencies = [
     { name = "fpdf2" },
@@ -364,6 +364,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pypdf" },
     { name = "textual" },
+    { name = "truststore" },
     { name = "typer" },
 ]
 
@@ -386,6 +387,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.13.5" },
     { name = "pypdf", specifier = ">=6.19.0" },
     { name = "textual", specifier = ">=8.2" },
+    { name = "truststore", specifier = ">=0.10" },
     { name = "typer", specifier = ">=0.27.2" },
 ]
 
