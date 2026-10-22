@@ -32,12 +32,21 @@ def _local_appdata() -> Path:
     return Path(os.environ.get("LOCALAPPDATA", _home() / "AppData" / "Local"))
 
 
-def _pacote_claude_msix() -> Path | None:
-    """Claude Desktop instalado como pacote MSIX (Microsoft Store/instalador novo): o app enxerga uma pasta
-    AppData virtualizada dentro do pacote, e é lá que ele lê o claude_desktop_config.json."""
+def _pacote_msix(prefixo: str) -> Path | None:
+    """App instalado como pacote MSIX (Microsoft Store/instalador novo), pela pasta em LOCALAPPDATA/Packages."""
     pacotes = _local_appdata() / "Packages"
-    achados = sorted(pacotes.glob("Claude_*")) if pacotes.exists() else []
+    achados = sorted(pacotes.glob(f"{prefixo}_*")) if pacotes.exists() else []
     return achados[0] if achados else None
+
+
+def _pacote_claude_msix() -> Path | None:
+    """O Claude MSIX enxerga uma pasta AppData virtualizada dentro do pacote, e é lá que ele lê o
+    claude_desktop_config.json."""
+    return _pacote_msix("Claude")
+
+
+def _pasta_codex() -> Path:
+    return Path(os.environ.get("CODEX_HOME", _home() / ".codex"))
 
 
 def _config_claude_desktop() -> Path:
@@ -137,6 +146,55 @@ class HostJson(Host):
         return f"removido de {self.arquivo}"
 
 
+class HostToml(Host):
+    """Codex (app, CLI e extensão do VS Code): todos leem o mesmo config.toml. Editamos o arquivo direto,
+    sem depender do comando `codex` no PATH, que o app não instala."""
+
+    SECAO = re.compile(rf"^\[mcp_servers\.{NOME_SERVIDOR}(?:\.[\w-]+)?\][^\n]*\n?(?:(?!\[)[^\n]*\n?)*", re.M)
+
+    def __init__(self, id: str, nome: str, arquivo: Path, executavel: str, indicios: list[Path]):
+        super().__init__(id, nome)
+        self.arquivo, self.executavel, self.indicios = arquivo, executavel, indicios
+
+    def instalado(self) -> bool:
+        return (self.arquivo.parent.exists() or any(i.exists() for i in self.indicios)
+                or shutil.which(self.executavel) is not None)
+
+    def _texto(self) -> str:
+        return self.arquivo.read_text(encoding="utf-8") if self.arquivo.exists() else ""
+
+    def configurado(self) -> bool:
+        return self.SECAO.search(self._texto()) is not None
+
+    def _gravar(self, texto: str) -> None:
+        import tomllib
+
+        tomllib.loads(texto)  # TOML inválido trava o app do Codex na abertura: nunca gravar um
+        self.arquivo.parent.mkdir(parents=True, exist_ok=True)
+        self.arquivo.write_text(texto, encoding="utf-8")
+
+    def configurar(self) -> str:
+        _backup(self.arquivo)
+        comando, *args = comando_mcp()
+        # json.dumps gera strings TOML válidas (barras do Windows escapadas)
+        bloco = (f"[mcp_servers.{NOME_SERVIDOR}]\ncommand = {json.dumps(comando)}\n"
+                 f"args = {json.dumps(args)}\nstartup_timeout_sec = 60\n")
+        resto = self.SECAO.sub("", self._texto()).rstrip()
+        self._gravar(f"{resto}\n\n{bloco}" if resto else bloco)
+        return f"adicionado em {self.arquivo}"
+
+    def revisar(self) -> str:
+        return self.configurar()
+
+    def remover(self) -> str:
+        texto = self._texto()
+        if not self.SECAO.search(texto):
+            return "não estava configurado"
+        resto = self.SECAO.sub("", texto).rstrip()
+        self._gravar(resto + "\n" if resto else "")
+        return f"removido de {self.arquivo}"
+
+
 class HostCli(Host):
     """Apps configurados pela própria linha de comando (Claude Code, Codex)."""
 
@@ -214,9 +272,8 @@ def todos() -> list[Host]:
                 ["mcp", "add", NOME_SERVIDOR, "-s", "user"], ["mcp", "remove", NOME_SERVIDOR, "-s", "user"],
                 home / ".claude.json", r'"expeditto"\s*:', permissoes=home / ".claude" / "settings.json",
                 skills=home / ".claude" / "skills"),
-        HostCli("codex", "Codex (OpenAI)", "codex",
-                ["mcp", "add", NOME_SERVIDOR], ["mcp", "remove", NOME_SERVIDOR],
-                home / ".codex" / "config.toml", r"\[mcp_servers\.expeditto\]"),
+        HostToml("codex", "Codex (OpenAI)", _pasta_codex() / "config.toml", "codex",
+                 indicios=[Path("/Applications/Codex.app"), *filter(None, [_pacote_msix("OpenAI.Codex")])]),
         # trust: o Gemini CLI não pede confirmação a cada ferramenta (salvar_no_suap ainda exige confirmado=true)
         HostJson("gemini", "Gemini CLI", home / ".gemini" / "settings.json", home / ".gemini", "gemini",
                  extras={"timeout": 600000, "trust": True}, extensoes=home / ".gemini" / "extensions"),
