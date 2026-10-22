@@ -1,6 +1,6 @@
 [project]
 name = "expeditto"
-version = "0.4.2"
+version = "0.4.3"
 description = "Expeditto: seu segundo expediente, resolvido. Assistente de burocracia docente (RIT do SUAP IFMA), com CLI e servidor MCP."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -28,6 +28,7 @@ dependencies = [
     "pydantic>=2.13.5",
     "pypdf>=6.19.0",
     "textual>=8.2",
+    "truststore>=0.10",
     "typer>=0.27.2",
 ]
 
