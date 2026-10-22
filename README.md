@@ -15,7 +15,7 @@ Funciona pelo terminal (`expeditto`) e dentro do seu assistente de IA (servidor 
 Windows (PowerShell):
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://expeditto.fabitz.com.br/install.ps1 | iex"
+irm https://expeditto.fabitz.com.br/install.ps1 | iex
 ```
 
 macOS e Linux:

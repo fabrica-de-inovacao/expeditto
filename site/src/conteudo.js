@@ -9,7 +9,7 @@ const origem = typeof window !== "undefined" && window.location.origin.startsWit
 export const INSTALACAO = {
   windows: {
     rotulo: "Windows",
-    comando: `powershell -ExecutionPolicy ByPass -c "irm ${origem}/install.ps1 | iex"`,
+    comando: `irm ${origem}/install.ps1 | iex`,
     dica: "Abra o PowerShell pelo menu Iniciar, cole o comando e tecle Enter.",
   },
   unix: {
