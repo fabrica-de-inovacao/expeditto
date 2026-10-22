@@ -52,6 +52,36 @@ def test_claude_desktop_msix_e_nunca_aberto(tmp_path, monkeypatch):
     assert claude.instalado()
 
 
+def test_codex_app_sem_cli(tmp_path, monkeypatch):
+    """App do Codex sem o comando no PATH: detecta pela pasta ~/.codex e edita o config.toml direto,
+    preservando o resto do arquivo e gerando TOML válido."""
+    import tomllib
+
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / ".codex"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
+    monkeypatch.setattr(hosts.shutil, "which", lambda _: None)
+    codex = hosts.por_id("codex")
+    assert not codex.instalado()
+    pacote = tmp_path / "Local" / "Packages" / "OpenAI.Codex_2p2nqsd0c76g0"  # app da Store, nunca aberto
+    pacote.mkdir(parents=True)
+    assert hosts.por_id("codex").instalado()
+    pacote.rmdir()
+    (tmp_path / ".codex").mkdir()
+    original = 'model = "gpt-5"\n\n[mcp_servers.outro]\ncommand = "x"\n'
+    codex.arquivo.write_text(original, encoding="utf-8")
+    assert codex.instalado() and not codex.configurado()
+
+    codex.configurar()
+    codex.configurar()  # idempotente: não duplica a seção
+    dados = tomllib.loads(codex.arquivo.read_text(encoding="utf-8"))
+    assert dados["mcp_servers"]["expeditto"]["args"] == ["-m", "expeditto", "mcp"]
+    assert dados["mcp_servers"]["outro"] == {"command": "x"} and dados["model"] == "gpt-5"
+
+    codex.remover()
+    assert not codex.configurado()
+    assert tomllib.loads(codex.arquivo.read_text(encoding="utf-8")) == tomllib.loads(original)
+
+
 def test_conectar_e_desconectar(app_falso):
     assert [a.id for a in instalador.apps_detectados()] == ["claude-desktop"]
     [r] = instalador.conectar([app_falso])
